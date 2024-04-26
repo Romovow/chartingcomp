@@ -34,3 +34,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Custom degeneracy to ignore
+extractOhlc.mjs
+historicalData.json
+ohlcgenerator.mjs
+raydium_mainnet.json
+raydium.mjs
+temp_raydium_mainnet.json
+tokencreationtime.mjs
+transactionfetcher.mjs
+transactions.mjs
+
