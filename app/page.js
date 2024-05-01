@@ -9,7 +9,6 @@ export default function Home() {
   return (
     <main >
       <CandlestickChart />
-      {/* Rest of your component */}
     </main>
   );
 }

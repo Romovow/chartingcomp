@@ -1,66 +1,41 @@
-import React, { useEffect, useRef } from 'react';
-import { createChart } from 'lightweight-charts';
+import React, { useEffect } from 'react';
 
-const ExponentialMA = ({ data }) => {
-    const chartContainerRef = useRef(null);
-    const chartRef = useRef(null);
-
+const ExponentialMA = ({ data, chartRef, period = 14 }) => {
     useEffect(() => {
-        if (!chartContainerRef.current) return;
+        if (!chartRef.current || !chartRef.current.chart || data.length < period) {
+            console.log("Chart not initialized or insufficient data");
+            return;
+        }
 
-        const chart = createChart(chartContainerRef.current, {
-            width: chartContainerRef.current.clientWidth,
-            height: 400,
-            layout: {
-                backgroundColor: '#000000',
-                textColor: '#d1d4dc',
-            },
-            grid: {
-                vertLines: {
-                    color: '#404040',
-                },
-                horzLines: {
-                    color: '#404040',
-                },
-            },
-        });
-
-        const candleSeries = chart.addCandlestickSeries();
-        candleSeries.setData(data);
-
+        const chart = chartRef.current.chart; 
+        const emaData = calculateExponentialMA(data, period);
         const emaSeries = chart.addLineSeries({
-            color: 'blue',
+            color: 'rgba(60, 120, 216, 0.8)', 
             lineWidth: 2,
         });
 
-        const calculateEMA = (data, length = 14) => {
-            let ema = [];
-            let k = 2 / (length + 1);
-            ema[0] = { time: data[0].time, value: data[0].close }; 
-
-            for (let i = 1; i < data.length; i++) {
-                let emaValue = data[i].close * k + ema[i - 1].value * (1 - k);
-                ema.push({ time: data[i].time, value: emaValue });
-            }
-
-            return ema;
-        };
-
-        const emaData = calculateEMA(data);
         emaSeries.setData(emaData);
 
-        chartRef.current = chart;
+        return () => chart.removeSeries(emaSeries);
+    }, [data, chartRef, period]);
 
-        return () => {
-            chart.remove();
-        };
-    }, [data]);
+    return null;
+};
 
-    return (
-        <div ref={chartContainerRef} style={{ height: '400px' }}>
-            <h3>Exponential Moving Average Overlay</h3>
-        </div>
-    );
+const calculateExponentialMA = (data, period) => {
+    let emaData = [];
+    let multiplier = 2 / (period + 1);
+    let emaPrev = data[0].close; 
+
+    for (let i = 0; i < data.length; i++) {
+        let ema = (data[i].close - emaPrev) * multiplier + emaPrev;
+        emaData.push({
+            time: data[i].time,
+            value: ema
+        });
+        emaPrev = ema; 
+    }
+    return emaData;
 };
 
 export default ExponentialMA;

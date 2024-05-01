@@ -25,7 +25,6 @@ const ChartControls = ({ selectedTimeframe, onTimeframeChange, selectedIndicator
     { label: 'Moving Average', value: 'ma' },
     { label: 'Exponential MA', value: 'ema' },
     { label: 'Bollinger Bands', value: 'bollinger' },
-    { label: 'RSI', value: 'rsi' },
     { label: 'MACD', value: 'macd' }
   ];
 
@@ -57,9 +56,15 @@ const ChartControls = ({ selectedTimeframe, onTimeframeChange, selectedIndicator
           </option>
         ))}
       </select>
-      <button onClick={toggleChartType}>
-        {chartType === 'candlestick' ? 'Switch to Line' : 'Switch to Candlestick'}
-      </button>
+      <button
+  className={`px-4 py-2 rounded ${
+    chartType === 'candlestick' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+  }`}
+  onClick={onChartTypeChange}
+>
+  {chartType === 'candlestick' ? 'Switch to Line Chart' : 'Switch to Candlestick Chart'}
+</button>
+
     </div>
   );
 };

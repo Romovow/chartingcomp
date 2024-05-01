@@ -3,9 +3,12 @@ import { createChart } from "lightweight-charts";
 import ohlcData from '../../ohlcData.json';
 import ChartControls from './controls/ChartControls';
 import IndicatorDisplay from './controls/IndicatorDisplay';
+
 import DisplayControls from './controls/DisplayControls';
+import { min } from "lodash";
 
 export default function Home() {
+  const [chartType, setChartType] = useState('candlestick'); 
   const [selectedTimeframe, setSelectedTimeframe] = useState('1D');
   const [selectedIndicator, setSelectedIndicator] = useState('');
   const [aggregatedData, setAggregatedData] = useState({});
@@ -14,16 +17,82 @@ export default function Home() {
   const volumeChartContainerRef = useRef(null);
   const [logScale, setLogScale] = useState(false);
   const [percentageDisplay, setPercentageDisplay] = useState(false);
+  const [chartData, setChartData] = useState([]);
+  const macdContainerRef = useRef(null);
 
-
-  const handleChartTypeChange = (type) => {
+  const handleChartTypeChange = () => {
+    const newChartType = chartType === 'candlestick' ? 'line' : 'candlestick';
+    setChartType(newChartType);
+  
     if (chartRef.current) {
-      chartRef.current.candleSeries.applyOptions({
-        type: type === 'candlestick' ? 'candlestick' : 'line',
-      });
+      const chart = chartRef.current.chart;
+      if (chartRef.current.candleSeries) {
+        chart.removeSeries(chartRef.current.candleSeries);
+      }
+  
+      let series;
+      if (newChartType === 'candlestick') {
+        series = chart.addCandlestickSeries({
+          upColor: '#4bffb5',
+          downColor: '#ff4976',
+          borderDownColor: '#ff4976',
+          borderUpColor: '#4bffb5',
+          wickDownColor: '#838ca1',
+          wickUpColor: '#838ca1',
+          borderVisible: false,
+        });
+      } else {
+        series = chart.addLineSeries({
+          color: '#4bffb5',
+          lineWidth: 2,
+        });
+      }
+  
+      chartRef.current.candleSeries = series;
+  
+      updateChartData(selectedTimeframe, newChartType);
     }
   };
-
+  const updateChartData = (timeframe, chartType) => {
+    const data = aggregatedData[timeframe];
+    if (!data || data.length === 0) {
+      console.error("No data available for the selected timeframe:", timeframe);
+      return;
+    }
+  
+    let formattedData;
+    if (chartType === 'candlestick') {
+      formattedData = adjustCandleData(data);
+    } else {
+      formattedData = data.map(item => {
+        if (item.close === undefined || typeof item.close !== 'number') {
+          console.error("Invalid or missing 'close' value encountered", item);
+          return null; 
+        }
+        return {
+          time: item.time,
+          value: item.close
+        };
+      }).filter(item => item !== null); 
+    }
+  
+    if (formattedData.length === 0) {
+      console.error("All data points were invalid for the selected timeframe and chart type", timeframe, chartType);
+      return;
+    }
+  
+    if (chartRef.current && chartRef.current.candleSeries) {
+      chartRef.current.candleSeries.setData(formattedData);
+      chartRef.current.chart.timeScale().fitContent();
+    }
+  };
+  
+  useEffect(() => {
+    if (selectedTimeframe && chartType) {
+      updateChartData(selectedTimeframe, chartType);
+    }
+  }, [selectedTimeframe, chartType, aggregatedData]);
+  
 
   const handleLogScaleChange = (useLogScale) => {
     setLogScale(useLogScale);
@@ -64,62 +133,122 @@ export default function Home() {
 
   useEffect(() => {
     if (aggregatedData[selectedTimeframe]) {
-      chartRef.current.candleSeries.setData(aggregatedData[selectedTimeframe]);
-    }
-  }, [aggregatedData, selectedTimeframe]);
+      const data = aggregatedData[selectedTimeframe];
+      setChartData(data);
+  
+      if (chartRef.current && chartRef.current.candleSeries) {
+        let formattedData;
 
-  const handlePercentageDisplayChange = (usePercentage) => {
-    setPercentageDisplay(usePercentage);
-    if (chartRef.current && chartRef.current.candleSeries) {
-      const priceScale = chartRef.current.chart.priceScale('right');
-      if (usePercentage) {
-        const basePrice = aggregatedData[selectedTimeframe][0]?.close; 
+        if (chartType === 'line') {
+          formattedData = data.map(item => {
+            return {
+              time: item.time,
+              value: typeof item.close === 'number' ? item.close : null 
+            };
+          }).filter(item => item.value !== null); 
+        } else {
+          formattedData = adjustCandleData(data); 
+        }
+  
+        if (formattedData.length === 0) {
+          console.error("All data points were invalid for the selected timeframe and chart type", selectedTimeframe, chartType);
+          return;
+        }
+  
+        chartRef.current.candleSeries.setData(formattedData);
+        chartRef.current.chart.timeScale().fitContent();
+      }
+    }
+  }, [aggregatedData, selectedTimeframe, chartType]);
+  
+  
+
+const handlePercentageDisplayChange = (usePercentage) => {
+  setPercentageDisplay(usePercentage);
+  if (chartRef.current && chartRef.current.candleSeries) {
+    const priceScale = chartRef.current.chart.priceScale('right');
+    if (usePercentage) {
+      if (chartData.length > 0) {
+        console.log("Switching to percentage view.");
+        const baseValue = chartData[0].open;  
+        console.log("Current chart data:", chartData);
+        console.log("Base value for percentage view:", baseValue);
 
         priceScale.applyOptions({
-          mode: 2, 
+          mode: 2,
           scaleMargins: {
-            top: 0.2,
-            bottom: 0.2
+            top: 0.1,
+            bottom: 0.1
           },
-          autoScale: false
+          autoScale: false,
+          visiblePriceRange: {
+            from: -100, 
+            to: 100 
+          }
         });
+
         chartRef.current.chart.applyOptions({
           priceScale: {
             mode: 2,
             autoScale: false
           }
         });
+
         chartRef.current.candleSeries.applyOptions({
           priceFormat: {
             type: 'percentage',
-            baseValue: basePrice,
-            precision: 2
+            minMove: 0.01,
+            precision: 2,
+            baseValue: baseValue  
           }
         });
       } else {
-        priceScale.applyOptions({
-          mode: 0, 
-          scaleMargins: {
+        console.error("No data available to set percentage view.");
+      }
+    } else {
+      revertToPriceView();
+    }
+  } else {
+    console.error("Chart reference or candle series not found.");
+  }
+};
+
+
+
+
+
+function revertToPriceView() {
+    const priceScale = chartRef.current.chart.priceScale('right');
+    priceScale.applyOptions({
+        mode: 0,
+        scaleMargins: {
             top: 0.3,
             bottom: 0.25
-          },
-          autoScale: true
-        });
-        chartRef.current.chart.applyOptions({
-          priceScale: {
+        },
+        autoScale: true
+    });
+    console.log("Reverted to price view. Price scale options:", priceScale.options());
+
+    chartRef.current.chart.applyOptions({
+        priceScale: {
             mode: 0,
             autoScale: true
-          }
-        });
-        chartRef.current.candleSeries.applyOptions({
-          priceFormat: {
+        }
+    });
+    console.log("Chart options after reverting:", chartRef.current.chart.options());
+
+    chartRef.current.candleSeries.applyOptions({
+        priceFormat: {
             type: 'price',
             precision: 2
-          }
-        });
-      }
-    }
-  };
+        }
+    });
+    console.log("Candle series options after reverting:", chartRef.current.candleSeries.options());
+}
+
+
+
+
 
   const handleAutoScale = () => {
     if (chartRef.current) {
@@ -129,7 +258,7 @@ export default function Home() {
   useEffect(() => {
     const fetchAggregatedData = async () => {
       const timeframes = ['1sec', '5sec', '15sec', '30sec', '1min', '5min', '15min', '30min', '1H', '4H', '1D', '1W', '1M'];
-
+  
       try {
         const response = await fetch('/api/aggregate', {
           method: 'POST',
@@ -138,9 +267,10 @@ export default function Home() {
           },
           body: JSON.stringify({ timeframes }),
         });
-
+  
         if (response.ok) {
           const data = await response.json();
+          console.log("Aggregated data received:", data); 
           setAggregatedData(data);
         } else {
           console.error('Failed to fetch aggregated data');
@@ -149,10 +279,10 @@ export default function Home() {
         console.error('Error fetching aggregated data:', error);
       }
     };
-
+  
     fetchAggregatedData();
   }, []);
-
+  
 
   useEffect(() => {
     if (!volumeChartContainerRef.current) return;
@@ -205,6 +335,8 @@ export default function Home() {
     if (!chartContainerRef.current) return;
 
     const chart = createChart(chartContainerRef.current, {
+      width: chartContainerRef.current.clientWidth,
+      height: chartContainerRef.current.clientHeight,
       layout: {
         background: { type: 'solid', color: '#1F1F2E' },
         textColor: '#d1d4dc',
@@ -213,18 +345,10 @@ export default function Home() {
         vertLines: { color: '#444' },
         horzLines: { color: '#444' },
       },
-      width: chartContainerRef.current.clientWidth,
-      height: chartContainerRef.current.clientHeight,
-      rightPriceScale: {
-        scaleMargins: {
-          top: 0.3,
-          bottom: 0.25,
-        },
-      },
       timeScale: {
-        rightOffset: 50,  
+        rightOffset: 50,
         barSpacing: 0.5,
-        fixLeftEdge: false,
+        fixLeftEdge: true,
         lockVisibleTimeRangeOnResize: true,
         rightBarStaysOnScroll: true,
         visible: true,
@@ -243,15 +367,32 @@ export default function Home() {
       borderVisible: false,
     });
 
-    chartRef.current = { chart, candleSeries };
+    const volumeSeries = chart.addHistogramSeries({
+      color: '#26a69a',
+      priceFormat: {
+        type: 'volume',
+      },
+      overlay: true,
+      scaleMargins: {
+        top: 0.8,
+        bottom: 0,
+      },
+    });
+
+    chartRef.current = { chart, candleSeries, volumeSeries };
 
     return () => {
       chart.remove();
     };
   }, []);
 
-
-
+  
+  useEffect(() => {
+    if (chartRef.current) {
+      chartRef.current.chart.timeScale().fitContent(); 
+    }
+  }, [chartRef.current]);
+  
 
 
   const updateTimeFormatBasedOnZoom = (chart, from, to) => {
@@ -279,15 +420,15 @@ export default function Home() {
   };
 
 
-  const adjustCandleData = (data) => {
+const adjustCandleData = (data) => {
     return data.map((item, index, arr) => {
-      if (index === 0) return item; 
-      return {
-        ...item,
-        open: arr[index - 1].close 
-      };
+        if (index === 0) return item; 
+        return {
+            ...item,
+            open: arr[index - 1].close 
+        };
     });
-  };
+};
 
 
   const formatDate = (date, format) => {
@@ -315,28 +456,6 @@ export default function Home() {
   };
 
 
-  const updateDataOnZoom = (from, to) => {
-    console.log("Updating data on zoom:", from, to);
-    const visibleRange = to - from;
-    let buffer = visibleRange * 0.5;
-    buffer = Math.max(buffer, 86400 * 30);  
-
-    const expandedFrom = Math.max(minTimestamp, from - buffer);
-    const expandedTo = Math.min(maxTimestamp, to + buffer);
-    const visibleData = ohlcData.filter(d => d.time >= expandedFrom && d.time <= expandedTo);
-    const adjustedData = adjustCandleData(visibleData);
-
-    if (chartRef.current) {
-      chartRef.current.candleSeries.setData(adjustedData);
-      chartRef.current.volumeSeries.setData(visibleData.map(data => ({
-        time: data.time,
-        value: data.volume,
-        color: data.close > data.open ? '#26a69a' : '#ef5350',
-      })));
-
-      updateTimeFormatBasedOnZoom(chartRef.current.chart, from, to);
-    }
-  };
   const adjustAggregatedData = (data) => {
     if (!data) {
       console.log("Data is undefined or not yet available.");
@@ -352,70 +471,99 @@ export default function Home() {
     });
   };
 
-
-
   const setInitialZoom = () => {
     if (!chartRef.current || !aggregatedData[selectedTimeframe]) return;
-
+   
     const chart = chartRef.current.chart;
     const volumeChart = chartRef.current.volumeChart;
-
-    const displayRanges = {
-      '1sec': 10 * 60 * 1000, 
-      '5sec': 30 * 60 * 1000, 
-      '15sec': 2 * 60 * 60 * 1000, 
-      '30sec': 4 * 60 * 60 * 1000, 
-      '1min': 8 * 60 * 60 * 1000,
-      '5min': 24 * 60 * 60 * 1000, 
-      '15min': 3 * 24 * 60 * 60 * 1000, 
-      '30min': 7 * 24 * 60 * 60 * 1000, 
-      '1H': 14 * 24 * 60 * 60 * 1000,  
-      '4H': 60 * 24 * 60 * 60 * 1000,  
-      '1D': 180 * 24 * 60 * 60 * 1000,  
-      '1W': 365 * 24 * 60 * 60 * 1000,  
-      '1M': 5 * 365 * 24 * 60 * 60 * 1000  
-    };
-
-    const rangeToDisplay = displayRanges[selectedTimeframe] || 24 * 60 * 60 * 1000;  
-    const maxTime = ohlcData.reduce((max, o) => Math.max(max, o.time), 0);
-    const toDate = new Date(maxTime * 1000);
-    const fromDate = new Date(toDate.getTime() - rangeToDisplay);
-
-    const extendedToDate = new Date(toDate.getTime() + 3 * 24 * 60 * 60 * 1000);
-
+    const data = aggregatedData[selectedTimeframe];
+   
+    if (data.length === 0) return;
+   
+    const firstDataPoint = data[0].time;
+    const lastDataPoint = data[data.length - 1].time;
+   
+    let rangeToDisplay;
+    const totalDataRange = lastDataPoint - firstDataPoint;
+    switch (selectedTimeframe) {
+        case '1sec':
+        case '5sec':
+        case '15sec':
+        case '30sec':
+            rangeToDisplay = totalDataRange / 10; 
+            break;
+        case '1min':
+        case '5min':
+        case '15min':
+        case '30min':
+            rangeToDisplay = totalDataRange / 5; 
+            break;
+        case '1H':
+        case '4H':
+            rangeToDisplay = totalDataRange / 2; 
+            break;
+        default:
+            rangeToDisplay = totalDataRange; 
+    }
+    
+  
+    const adjustedTo = Math.min(lastDataPoint + rangeToDisplay / 2, lastDataPoint);
+    const adjustedFrom = Math.max(firstDataPoint, adjustedTo - rangeToDisplay);
+   
     chart.timeScale().setVisibleRange({
-      from: fromDate.getTime() / 1000,
-      to: extendedToDate.getTime() / 1000
+       from: adjustedFrom,
+       to: adjustedTo
     });
-
+   
     volumeChart.timeScale().setVisibleRange({
-      from: fromDate.getTime() / 1000,
-      to: extendedToDate.getTime() / 1000
+       from: adjustedFrom,
+       to: adjustedTo
     });
-  };
+   };
+   
 
 
-
-  useEffect(() => {
+   useEffect(() => {
     if (!chartRef.current || !aggregatedData[selectedTimeframe]) {
       console.log("Chart not initialized or data not available");
       return;
     }
+  
+    const data = aggregatedData[selectedTimeframe];
+    let adjustedData;
+  
+    if (chartType === 'line') {
+      adjustedData = data.map(item => ({
+        time: item.time,
+        value: typeof item.close === 'number' ? item.close : null 
+      })).filter(item => item.value !== null); 
+    } else {
+      adjustedData = adjustCandleData(data); 
+    }
+  
+    if (adjustedData.length === 0) {
+      console.error("All data points were invalid for the selected timeframe and chart type", selectedTimeframe, chartType);
+      return;
+    }
 
-    const adjustedData = adjustAggregatedData(aggregatedData[selectedTimeframe]);
-
-    chartRef.current.candleSeries.setData(adjustedData);
-    chartRef.current.volumeSeries.setData(adjustedData.map(data => ({
-      time: data.time,
-      value: data.volume,
-      color: data.close > data.open ? '#26a69a' : '#ef5350',
-    })));
-
-    chartRef.current.chart.timeScale().fitContent();
+    if (chartType === 'line') {
+      chartRef.current.candleSeries.setData(adjustedData);
+    } else {
+      chartRef.current.candleSeries.setData(adjustedData);
+      chartRef.current.volumeSeries.setData(adjustedData.map(data => ({
+        time: data.time,
+        value: data.volume,
+        color: data.close > data.open ? '#26a69a' : '#ef5350',
+      })));
+    }
+  
+    chartRef.current.chart.timeScale().fitContent(); 
     chartRef.current.volumeChart.timeScale().fitContent();
-
+  
     setInitialZoom(); 
-  }, [selectedTimeframe, aggregatedData]);
+  }, [selectedTimeframe, aggregatedData, chartType]); 
+  
+  
 
 
 
@@ -424,14 +572,16 @@ export default function Home() {
 
 
   return (
-    <main className="flex flex-col min-h-screen bg-[#1F1F2E]">
-      <ChartControls
-        selectedTimeframe={selectedTimeframe}
-        onTimeframeChange={setSelectedTimeframe}
-        selectedIndicator={selectedIndicator}
-        onIndicatorChange={setSelectedIndicator}
-        onChartTypeChange={handleChartTypeChange}
-      />
+    <main className="flex flex-col min-h-screen bg-[#1F1F2E]" style={{ maxHeight: '100vh', overflow: 'hidden' }}>
+
+<ChartControls
+  selectedTimeframe={selectedTimeframe}
+  onTimeframeChange={setSelectedTimeframe}
+  selectedIndicator={selectedIndicator}
+  onIndicatorChange={setSelectedIndicator}
+  chartType={chartType}
+  onChartTypeChange={handleChartTypeChange}
+/>
 
       <DisplayControls
         onLogScaleChange={handleLogScaleChange}
@@ -440,7 +590,19 @@ export default function Home() {
       />
       <div ref={chartContainerRef} className="chart-container flex-grow" style={{ minHeight: '400px' }}></div>
       <div ref={volumeChartContainerRef} className="volume-chart-container" style={{ height: '100px' }}></div>
-      <IndicatorDisplay indicator={selectedIndicator} ohlcData={ohlcData} />
+      <IndicatorDisplay
+        indicator={selectedIndicator}
+        ohlcData={chartData}
+        chartRef={chartRef}
+        macdContainerRef={selectedIndicator === 'macd' ? macdContainerRef : null}
+      />
+{selectedIndicator === 'macd' && (
+  <div
+    ref={macdContainerRef}
+    className="macd-chart-container"
+    style={{ width: '100%', height: '150px', overflow: 'hidden' }}
+  ></div>
+)}
     </main>
   );
 }

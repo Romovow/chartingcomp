@@ -1,43 +1,41 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 
-const MovingAverage = ({ data, type }) => {
-    const calculateSMA = (data, period = 14) => {
-        if (data.length < period) return [];
-        
-        return data.slice(period - 1).map((_, index) => {
-            let sum = 0;
-            for (let i = index; i < index + period; i++) {
-                sum += data[i].close;
-            }
-            return {
-                time: data[index + period - 1].time,
-                value: sum / period 
-            };
-        });
-    };
-
-    const calculateEMA = (data, period = 14) => {
-        if (data.length < period) return [];
-
-        let ema = [{ time: data[0].time, value: data[0].close }]; 
-        let multiplier = 2 / (period + 1);
-
-        for (let i = 1; i < data.length; i++) {
-            let value = (data[i].close - ema[i - 1].value) * multiplier + ema[i - 1].value;
-            ema.push({ time: data[i].time, value });
+const MovingAverage = ({ data, chartRef, period = 14 }) => {
+    useEffect(() => {
+        if (!chartRef.current || !chartRef.current.chart || data.length < period) {
+            console.log("Chart not initialized or insufficient data");
+            return;
         }
-        return ema;
-    };
 
-    const movingAverage = type === 'SMA' ? calculateSMA(data) : calculateEMA(data);
+        const chart = chartRef.current.chart; 
+        const maData = calculateMovingAverage(data, period);
+        const maSeries = chart.addLineSeries({
+            color: 'rgba(255, 87, 51, 0.8)',
+            lineWidth: 2,
+        });
+
+        maSeries.setData(maData);
+
+        return () => chart.removeSeries(maSeries);
+    }, [data, chartRef, period]);
+
+    return null;
+};
 
 
-    return (
-        <div>
-            <h3>{type} Moving Average:</h3>
-            <p>Last Value: {movingAverage.length > 0 ? movingAverage[movingAverage.length - 1].value.toFixed(2) : 'N/A'}</p>
-        </div>
-    );
+const calculateMovingAverage = (data, period) => {
+    let maData = [];
+    for (let i = period - 1; i < data.length; i++) {
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+            sum += data[i - j].close;
+        }
+        maData.push({
+            time: data[i].time,
+            value: sum / period
+        });
+    }
+    return maData;
 };
 
 export default MovingAverage;
