@@ -53,27 +53,32 @@ export default function Home() {
       updateChartData(selectedTimeframe, newChartType);
     }
   };
+
+
   const updateChartData = (timeframe, chartType) => {
-    const data = aggregatedData[timeframe];
+    let data = aggregatedData[timeframe];
     if (!data || data.length === 0) {
       console.error("No data available for the selected timeframe:", timeframe);
       return;
+    }
+  
+    if (timeframe === '1sec') {
+      console.log("Data for 1sec timeframe:", data);
+      const twoMinutesAgo = Date.now() / 1000 - 120; 
+      data = data.filter(d => d.time >= twoMinutesAgo);
+      if (data.length > 120) {
+        data = data.slice(-120); 
+      }
     }
   
     let formattedData;
     if (chartType === 'candlestick') {
       formattedData = adjustCandleData(data);
     } else {
-      formattedData = data.map(item => {
-        if (item.close === undefined || typeof item.close !== 'number') {
-          console.error("Invalid or missing 'close' value encountered", item);
-          return null; 
-        }
-        return {
-          time: item.time,
-          value: item.close
-        };
-      }).filter(item => item !== null); 
+      formattedData = data.map(item => ({
+        time: item.time,
+        value: item.close
+      })).filter(item => item !== null);
     }
   
     if (formattedData.length === 0) {
@@ -84,9 +89,52 @@ export default function Home() {
     if (chartRef.current && chartRef.current.candleSeries) {
       chartRef.current.candleSeries.setData(formattedData);
       chartRef.current.chart.timeScale().fitContent();
+      setChartData(formattedData); 
     }
   };
-  
+
+
+const aggregateDataIntoSeconds = (data, timeframe) => {
+  const secondsInTimeframe = parseInt(timeframe.replace('sec', ''));
+  const aggregatedData = [];
+
+  // Assuming data is sorted by time in ascending order
+  let bucketStartTime = data[0].time;
+  let bucketEndTime = bucketStartTime + secondsInTimeframe;
+  let bucketData = [];
+
+  data.forEach(item => {
+    if (item.time >= bucketStartTime && item.time < bucketEndTime) {
+      bucketData.push(item);
+    } else {
+      if (bucketData.length > 0) {
+        const open = bucketData[0].open;
+        const high = Math.max(...bucketData.map(d => d.high));
+        const low = Math.min(...bucketData.map(d => d.low));
+        const close = bucketData[bucketData.length - 1].close;
+        const volume = bucketData.reduce((sum, d) => sum + d.volume, 0);
+        aggregatedData.push({ time: bucketStartTime, open, high, low, close, volume });
+      }
+
+      bucketStartTime = item.time;
+      bucketEndTime = bucketStartTime + secondsInTimeframe;
+      bucketData = [item];
+    }
+  });
+
+  if (bucketData.length > 0) {
+    const open = bucketData[0].open;
+    const high = Math.max(...bucketData.map(d => d.high));
+    const low = Math.min(...bucketData.map(d => d.low));
+    const close = bucketData[bucketData.length - 1].close;
+    const volume = bucketData.reduce((sum, d) => sum + d.volume, 0);
+    aggregatedData.push({ time: bucketStartTime, open, high, low, close, volume });
+  }
+
+  return aggregatedData;
+};
+
+
   useEffect(() => {
     if (selectedTimeframe && chartType) {
       updateChartData(selectedTimeframe, chartType);
@@ -473,55 +521,71 @@ const adjustCandleData = (data) => {
 
   const setInitialZoom = () => {
     if (!chartRef.current || !aggregatedData[selectedTimeframe]) return;
-   
+     
     const chart = chartRef.current.chart;
     const volumeChart = chartRef.current.volumeChart;
     const data = aggregatedData[selectedTimeframe];
-   
+     
     if (data.length === 0) return;
    
-    const firstDataPoint = data[0].time;
-    const lastDataPoint = data[data.length - 1].time;
-   
-    let rangeToDisplay;
-    const totalDataRange = lastDataPoint - firstDataPoint;
+    let numberOfBars;
+
     switch (selectedTimeframe) {
-        case '1sec':
-        case '5sec':
-        case '15sec':
-        case '30sec':
-            rangeToDisplay = totalDataRange / 10; 
-            break;
-        case '1min':
-        case '5min':
-        case '15min':
-        case '30min':
-            rangeToDisplay = totalDataRange / 5; 
-            break;
-        case '1H':
-        case '4H':
-            rangeToDisplay = totalDataRange / 2; 
-            break;
-        default:
-            rangeToDisplay = totalDataRange; 
+       case '1sec':
+       case '5sec':
+       case '15sec':
+       case '30sec':
+         numberOfBars = 300; 
+         break;
+       case '1min':
+       case '5min':
+         numberOfBars = 60; 
+         break;
+       case '15min':
+       case '30min':
+         numberOfBars = 48; 
+         break;
+       case '1H':
+         numberOfBars = 24; 
+         break;
+       case '4H':
+         numberOfBars = 28; 
+         break;
+       case '1D':
+         numberOfBars = 30;
+         break;
+       case '1W':
+         numberOfBars = 12; 
+         break;
+       case '1M':
+         numberOfBars = 12; 
+         break;
+       default:
+         numberOfBars = 30; 
     }
-    
-  
-    const adjustedTo = Math.min(lastDataPoint + rangeToDisplay / 2, lastDataPoint);
-    const adjustedFrom = Math.max(firstDataPoint, adjustedTo - rangeToDisplay);
    
-    chart.timeScale().setVisibleRange({
-       from: adjustedFrom,
-       to: adjustedTo
-    });
+    const startIndex = Math.max(0, data.length - numberOfBars);
+    const endIndex = data.length - 1;
+     
+    const visibleRange = {
+       from: data[startIndex].time,
+       to: data[endIndex].time
+    };
    
-    volumeChart.timeScale().setVisibleRange({
-       from: adjustedFrom,
-       to: adjustedTo
-    });
+    chart.timeScale().setVisibleRange(visibleRange);
+    volumeChart.timeScale().setVisibleRange(visibleRange);
+   
+   
+    const timeScaleOptions = {
+       timeVisible: true,
+       secondsVisible: selectedTimeframe.includes('sec'),
+    };
+   
+    chart.timeScale().applyOptions(timeScaleOptions);
+    volumeChart.timeScale().applyOptions(timeScaleOptions);
    };
    
-
+  
 
    useEffect(() => {
     if (!chartRef.current || !aggregatedData[selectedTimeframe]) {
@@ -563,6 +627,16 @@ const adjustCandleData = (data) => {
     setInitialZoom(); 
   }, [selectedTimeframe, aggregatedData, chartType]); 
   
+  useEffect(() => {
+    if (selectedTimeframe === '1sec' && chartData.length > 0 && chartRef.current) {
+      const chart = chartRef.current.chart;
+      const visibleData = chartData.slice(-120);
+      const from = visibleData[0].time;
+      const to = visibleData[visibleData.length - 1].time;
+      chart.timeScale().setVisibleRange({ from, to });
+    }
+  }, [selectedTimeframe, chartData]);
+  
   
 
 
@@ -573,36 +647,42 @@ const adjustCandleData = (data) => {
 
   return (
     <main className="flex flex-col min-h-screen bg-[#1F1F2E]" style={{ maxHeight: '100vh', overflow: 'hidden' }}>
-
-<ChartControls
-  selectedTimeframe={selectedTimeframe}
-  onTimeframeChange={setSelectedTimeframe}
-  selectedIndicator={selectedIndicator}
-  onIndicatorChange={setSelectedIndicator}
-  chartType={chartType}
-  onChartTypeChange={handleChartTypeChange}
-/>
-
+  
+      <ChartControls
+        selectedTimeframe={selectedTimeframe}
+        onTimeframeChange={setSelectedTimeframe}
+        selectedIndicator={selectedIndicator}
+        onIndicatorChange={setSelectedIndicator}
+        chartType={chartType}
+        onChartTypeChange={handleChartTypeChange}
+      />
+  
       <DisplayControls
         onLogScaleChange={handleLogScaleChange}
         onPercentageDisplayChange={handlePercentageDisplayChange}
         onAutoScaleChange={handleAutoScale}
       />
-      <div ref={chartContainerRef} className="chart-container flex-grow" style={{ minHeight: '400px' }}></div>
+  
+      <div ref={chartContainerRef} className="chart-container" style={{ flex: 1,}}></div>
+  
       <div ref={volumeChartContainerRef} className="volume-chart-container" style={{ height: '100px' }}></div>
+  
       <IndicatorDisplay
         indicator={selectedIndicator}
         ohlcData={chartData}
         chartRef={chartRef}
         macdContainerRef={selectedIndicator === 'macd' ? macdContainerRef : null}
       />
-{selectedIndicator === 'macd' && (
-  <div
-    ref={macdContainerRef}
-    className="macd-chart-container"
-    style={{ width: '100%', height: '150px', overflow: 'hidden' }}
-  ></div>
-)}
+  
+      {selectedIndicator === 'macd' && (
+        <div
+          ref={macdContainerRef}
+          className="macd-chart-container"
+          style={{ width: '100%', height: '100px', overflow: 'hidden' }}
+        ></div>
+      )}
+  
     </main>
   );
+  
 }
