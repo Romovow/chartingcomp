@@ -12,7 +12,7 @@ const RSI = ({ data, period = 14, containerRef }) => {
 
         const chart = createChart(containerRef.current, {
             width: containerRef.current.clientWidth,
-            height: 150, // Set a fixed height for the RSI chart
+            height: 150, 
             layout: {
                 backgroundColor: '#000000',
                 textColor: '#d1d4dc',

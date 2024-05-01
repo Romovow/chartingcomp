@@ -10,7 +10,6 @@ const MACD = ({ data, period = { fast: 12, slow: 26, signal: 9 }, containerRef }
       return;
     }
   
-    // Ensure the chart uses the full width of the container
     const chart = createChart(containerRef.current, {
       width: containerRef.current.clientWidth,
       layout: {
@@ -22,7 +21,7 @@ const MACD = ({ data, period = { fast: 12, slow: 26, signal: 9 }, containerRef }
         horzLines: { color: '#444' },
       },
       timeScale: {
-        rightOffset: 0, // Adjusted to zero to use full width
+        rightOffset: 0, 
         barSpacing: 0.5,
         fixLeftEdge: true,
         lockVisibleTimeRangeOnResize: true,
@@ -62,7 +61,6 @@ const MACD = ({ data, period = { fast: 12, slow: 26, signal: 9 }, containerRef }
     signalSeries.setData(signalLine);
     histogramSeries.setData(histogram);
   
-    // Fit content to ensure all data is visible initially
     chart.timeScale().fitContent();
   
     chartRef.current = chart;
@@ -81,7 +79,6 @@ const calculateMACD = (data, fastPeriod, slowPeriod, signalPeriod) => {
     const fastEMA = calculateExponentialMA(data, fastPeriod);
     const slowEMA = calculateExponentialMA(data, slowPeriod);
 
-    // Ensure that the slowEMA has values before calculating the MACD line
     const macdLine = fastEMA.map((fast, index) => {
         if (index < slowEMA.length) {
             return {
@@ -94,7 +91,6 @@ const calculateMACD = (data, fastPeriod, slowPeriod, signalPeriod) => {
 
     const signalLine = calculateExponentialMA(macdLine, signalPeriod);
 
-    // Ensure that the signalLine has values before calculating the histogram
     const histogram = macdLine.map((macd, index) => {
         if (index < signalLine.length) {
             return {
@@ -113,7 +109,7 @@ const calculateExponentialMA = (data, period) => {
 
     let emaData = [];
     let multiplier = 2 / (period + 1);
-    let emaPrev = data[0].close;  // Assuming data[0] is valid
+    let emaPrev = data[0].close; 
 
     for (let i = 1; i < data.length; i++) {
         let ema = (data[i].close - emaPrev) * multiplier + emaPrev;
