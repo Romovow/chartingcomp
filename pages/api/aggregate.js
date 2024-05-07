@@ -17,19 +17,28 @@ function precomputeDataForAllTimeframes(data) {
 }
 
 export default function handler(req, res) {
-  if (req.method === 'POST') {
-    const { timeframes } = req.body;
-    const aggregatedData = {};
+  if (req.method !== 'POST') {
+    return res.status(405).json({ message: 'Method not allowed' });
+  }
 
-    timeframes.forEach(timeframe => {
-      aggregatedData[timeframe] = precomputedData[timeframe];
-    });
+  try {
+    const { timeframes } = req.body;
+    if (!Array.isArray(timeframes)) {
+      return res.status(400).json({ error: "Timeframes must be an array" });
+    }
+
+    const aggregatedData = timeframes.reduce((acc, timeframe) => {
+      acc[timeframe] = precomputedData[timeframe];
+      return acc;
+    }, {});
 
     res.status(200).json(aggregatedData);
-  } else {
-    res.status(405).json({ message: 'Method not allowed' });
+  } catch (error) {
+    console.error('Error handling request:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
+
 
 function aggregateData(data, timeframe) {
   const timeframeInSeconds = {

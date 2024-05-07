@@ -28,11 +28,6 @@ const ChartControls = ({ selectedTimeframe, onTimeframeChange, selectedIndicator
     { label: 'MACD', value: 'macd' }
   ];
 
-  const toggleChartType = () => {
-    const newType = chartType === 'candlestick' ? 'line' : 'candlestick';
-    setChartType(newType);
-    onChartTypeChange(newType);
-  };
 
   return (
     <div className="chart-controls">
