@@ -6,6 +6,10 @@ import { fetchChartData, adjustCandleData, revertToPriceView } from "./utils/cha
 import DisplayControls from './controls/DisplayControls';
 import debounce from 'lodash/debounce';
 import throttle from 'lodash/throttle';
+import AlignmentLineControl from './AlignmentLineControl';
+import ResizableBox from "./utils/ResizeableBox";
+import ResizeHandle from './utils/ResizeHandle';
+import { set } from "lodash";
 
 export default function Home() {
   const [chartType, setChartType] = useState('candlestick');
@@ -17,32 +21,27 @@ export default function Home() {
   const volumeChartContainerRef = useRef(null);
   const [logScale, setLogScale] = useState(false);
   const [percentageDisplay, setPercentageDisplay] = useState(false);
-  const [alignmentLinePosition, setAlignmentLinePosition] = useState(null);
   const [chartData, setChartData] = useState([]);
   const macdContainerRef = useRef(null);
-
-
+  const indicatorContainerRef = useRef(null);
+  const [alignmentLinePosition, setAlignmentLinePosition] = useState(null);
   const [macdHeight, setMacdHeight] = useState();
-  const [chartHeight, setChartHeight] = useState(600);
-  const [volumeChartHeight, setVolumeChartHeight] = useState(100);
-  const totalHeight = chartHeight + volumeChartHeight; 
+  const [chartHeight, setChartHeight] = useState(820);
 
+  const [volumeChartHeight, setVolumeChartHeight] = useState(280);
   const [indicatorHeight, setIndicatorHeight] = useState(200);
+
   const [isResizing, setIsResizing] = useState(false);
   const [startY, setStartY] = useState(0);
   const [startHeight, setStartHeight] = useState(100);
   const [resizeTimeout, setResizeTimeout] = useState(null);
   const [resizeFinished, setResizeFinished] = useState(false);
 
-  const updateChartHeight = useCallback((deltaY) => {
-    const newTotalHeight = chartHeight + volumeChartHeight - deltaY;
-    const chartProportion = chartHeight / (chartHeight + volumeChartHeight);
-    const newChartHeight = newTotalHeight * chartProportion;
-    const newVolumeChartHeight = newTotalHeight * (1 - chartProportion);
+  const [chartPosition, setChartPosition] = useState({ x: 0, y: 0 });
+  const [volumePosition, setVolumePosition] = useState({ x: 0, y: 150 });
+  const [indicatorPosition, setIndicatorPosition] = useState({ x: 0, y: 300 });
+  const [dragging, setDragging] = useState({ active: false, ref: null, startX: 0, startY: 0 });
 
-    setChartHeight(newChartHeight);
-    setVolumeChartHeight(newVolumeChartHeight);
-  }, [chartHeight, volumeChartHeight]);
 
   const handleChartTypeChange = () => {
     const newChartType = chartType === 'candlestick' ? 'line' : 'candlestick';
@@ -77,7 +76,6 @@ export default function Home() {
       updateChartData(selectedTimeframe, newChartType);
     }
   };
-
 
   const updateChartData = (timeframe, chartType) => {
     let data = aggregatedData[timeframe];
@@ -116,7 +114,6 @@ export default function Home() {
       setChartData(formattedData);
     }
   };
-
 
   const aggregateDataIntoSeconds = (data, timeframe) => {
     const secondsInTimeframe = parseInt(timeframe.replace('sec', ''));
@@ -158,25 +155,21 @@ export default function Home() {
     return aggregatedData;
   };
 
-
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (selectedTimeframe === '1sec') {
         fetchChartData(selectedTimeframe);
       }
-    }, 1000);  // Polling every second for 1sec timeframe
-
+    }, 1000);
     return () => clearInterval(intervalId); 
   }, [selectedTimeframe]);
-
-
+  
   useEffect(() => {
     if (selectedTimeframe && chartType) {
       fetchChartData(selectedTimeframe, chartType);
     }
   }, [selectedTimeframe, chartType, aggregatedData]);
-
-
+  
   const handleLogScaleChange = (useLogScale) => {
     setLogScale(useLogScale);
     if (chartRef.current) {
@@ -185,7 +178,7 @@ export default function Home() {
           mode: useLogScale ? 1 : 0,
         },
       });
-
+  
       if (percentageDisplay) {
         const priceScale = chartRef.current.chart.priceScale('right');
         priceScale.applyOptions({
@@ -208,20 +201,19 @@ export default function Home() {
             precision: 2
           }
         });
-
+  
         setPercentageDisplay(false);
       }
     }
   };
-
   useEffect(() => {
     if (aggregatedData[selectedTimeframe]) {
       const data = aggregatedData[selectedTimeframe];
       setChartData(data);
-
+  
       if (chartRef.current && chartRef.current.candleSeries) {
         let formattedData;
-
+  
         if (chartType === 'line') {
           formattedData = data.map(item => {
             return {
@@ -232,18 +224,18 @@ export default function Home() {
         } else {
           formattedData = adjustCandleData(data);
         }
-
+  
         if (formattedData.length === 0) {
           console.error("All data points were invalid for the selected timeframe and chart type", selectedTimeframe, chartType);
           return;
         }
-
+  
         chartRef.current.candleSeries.setData(formattedData);
         chartRef.current.chart.timeScale().fitContent();
       }
     }
   }, [aggregatedData, selectedTimeframe, chartType]);
-
+  
   const handlePercentageDisplayChange = (usePercentage) => {
     setPercentageDisplay(usePercentage);
     if (chartRef.current && chartRef.current.candleSeries) {
@@ -254,7 +246,7 @@ export default function Home() {
           const baseValue = chartData[0].open;
           console.log("Current chart data:", chartData);
           console.log("Base value for percentage view:", baseValue);
-
+  
           priceScale.applyOptions({
             mode: 2,
             scaleMargins: {
@@ -267,14 +259,14 @@ export default function Home() {
               to: 100
             }
           });
-
+  
           chartRef.current.chart.applyOptions({
             priceScale: {
               mode: 2,
               autoScale: false
             }
           });
-
+  
           chartRef.current.candleSeries.applyOptions({
             priceFormat: {
               type: 'percentage',
@@ -293,18 +285,17 @@ export default function Home() {
       console.error("Chart reference or candle series not found.");
     }
   };
-
-
+  
   const handleAutoScale = () => {
     if (chartRef.current) {
       chartRef.current.chart.timeScale().fitContent();
     }
   };
-
+  
   useEffect(() => {
     const fetchAggregatedData = async () => {
       const timeframes = ['1sec', '5sec', '15sec', '30sec', '1min', '5min', '15min', '30min', '1H', '4H', '1D', '1W', '1M'];
-
+  
       try {
         const response = await fetch('/api/aggregate', {
           method: 'POST',
@@ -313,7 +304,7 @@ export default function Home() {
           },
           body: JSON.stringify({ timeframes }),
         });
-
+  
         if (response.ok) {
           const data = await response.json();
           console.log("Aggregated data received:", data);
@@ -325,71 +316,95 @@ export default function Home() {
         console.error('Error fetching aggregated data:', error);
       }
     };
-
+  
     fetchAggregatedData();
   }, []);
-
-
-
+  
   useEffect(() => {
     if (!volumeChartContainerRef.current) return;
 
+    // Re-setup the chart with new dimensions
     const volumeChart = createChart(volumeChartContainerRef.current, {
-      width: volumeChartContainerRef.current.clientWidth,
-      height: volumeChartHeight,
-      layout: {
-        background: { type: 'solid', color: '#1F1F2E' },
-        textColor: '#d1d4dc',
-      },
-      grid: {
-        vertLines: { color: '#444' },
-        horzLines: { color: '#444' },
-      },
-      timeScale: {
-        rightOffset: 10,
-        barSpacing: 0.5,
-        fixLeftEdge: true,
-        lockVisibleTimeRangeOnResize: true,
-        rightBarStaysOnScroll: true,
-        borderVisible: false,
-        borderColor: "#fff000",
-        visible: true,
-        timeVisible: true,
-        secondsVisible: false,
-      },
+        width: volumeChartContainerRef.current.clientWidth,
+        height: volumeChartHeight,
+        layout: {
+            background: { type: 'solid', color: '#1F1F2E' },
+            textColor: '#d1d4dc',
+        },
+        grid: {
+            vertLines: { color: '#444' },
+            horzLines: { color: '#444' },
+        },
+        timeScale: {
+            rightOffset: 10,
+            barSpacing: 0.5,
+            fixLeftEdge: true,
+            lockVisibleTimeRangeOnResize: true,
+            rightBarStaysOnScroll: true,
+            borderVisible: false,
+            borderColor: "#fff000",
+            visible: true,
+            timeVisible: true,
+            secondsVisible: false,
+        },
     });
 
     const volumeSeries = volumeChart.addHistogramSeries({
-      color: '#26a69a',
-      priceFormat: {
-        type: 'volume',
-      },
-      overlay: true,
-      scaleMargins: {
-        top: 0.1,
-        bottom: 0.9,
-      },
+        color: '#26a69a',
+        priceFormat: {
+            type: 'volume',
+        },
+        overlay: true,
+        scaleMargins: {
+            top: 0.1,
+            bottom: 0.9,
+        },
     });
 
     chartRef.current = { ...chartRef.current, volumeChart, volumeSeries };
 
-    return () => {
-      volumeChart.remove();
-    };
-  }, [volumeChartContainerRef.current]);
-  useEffect(() => {
-    if (chartRef.current && chartRef.current.volumeChart) {
-      chartRef.current.volumeChart.applyOptions({ height: volumeChartHeight });
+    // Reapply data
+    if (chartData.length > 0) {
+        volumeSeries.setData(chartData.map(data => ({
+            time: data.time,
+            value: data.volume,
+            color: data.close > data.open ? '#26a69a' : '#ef5350',
+        })));
     }
-  }, [volumeChartHeight]);
 
-
+    return () => {
+        volumeChart.remove();
+    };
+}, [volumeChartContainerRef.current, volumeChartHeight, chartData]);
+  
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (chartRef.current && chartRef.current.volumeChart && chartRef.current.volumeSeries) {
+      chartRef.current.volumeChart.applyOptions({
+        height: volumeChartHeight,
+      });
+  
+      // Update the volume series data when the chart data changes
+      if (chartData.length > 0) {
+        chartRef.current.volumeSeries.setData(chartData.map(data => ({
+          time: data.time,
+          value: data.volume,
+          color: data.close > data.open ? '#26a69a' : '#ef5350',
+        })));
+      }
+      chartRef.current.volumeChart.timeScale().fitContent();
+    }
+  }, [volumeChartHeight, chartData]);
 
+  
+  useEffect(() => {
+    if (!chartContainerRef.current) {
+      console.log("Chart container not ready");
+      return;
+    }
+  
     const chart = createChart(chartContainerRef.current, {
       width: chartContainerRef.current.clientWidth,
-      height: chartContainerRef.current.clientHeight,
+      height: chartHeight,
       layout: {
         background: { type: 'solid', color: '#1F1F2E' },
         textColor: '#d1d4dc',
@@ -409,7 +424,7 @@ export default function Home() {
         secondsVisible: false,
       },
     });
-
+  
     const candleSeries = chart.addCandlestickSeries({
       upColor: '#4bffb5',
       downColor: '#ff4976',
@@ -419,46 +434,30 @@ export default function Home() {
       wickUpColor: '#838ca1',
       borderVisible: false,
     });
+  
+    chartRef.current = { chart, candleSeries };
+  
 
-    const volumeSeries = chart.addHistogramSeries({
-      color: '#26a69a',
-      priceFormat: {
-        type: 'volume',
-      },
-      overlay: true,
-      scaleMargins: {
-        top: 0.8,
-        bottom: 0,
-      },
-    });
-
-    chartRef.current = { chart, candleSeries, volumeSeries };
-
+  
     return () => {
       chart.remove();
     };
-  }, []);
+  }, [chartContainerRef, chartHeight]);
+  
+  
 
   
-  useEffect(() => {
-    if (chartRef.current) {
-      chartRef.current.chart.timeScale().fitContent();
-    }
-  }, [chartRef.current]);
-
-
-
   const setInitialZoom = () => {
     if (!chartRef.current || !aggregatedData[selectedTimeframe]) return;
-
+  
     const chart = chartRef.current.chart;
     const volumeChart = chartRef.current.volumeChart;
     const data = aggregatedData[selectedTimeframe];
-
+  
     if (data.length === 0) return;
-
+  
     let numberOfBars;
-
+  
     switch (selectedTimeframe) {
       case '1sec':
       case '5sec':
@@ -492,39 +491,43 @@ export default function Home() {
       default:
         numberOfBars = 30;
     }
-
+  
     const startIndex = Math.max(0, data.length - numberOfBars);
     const endIndex = data.length - 1;
-
+  
     const visibleRange = {
       from: data[startIndex].time,
       to: data[endIndex].time
     };
-
+  
     chart.timeScale().setVisibleRange(visibleRange);
-    volumeChart.timeScale().setVisibleRange(visibleRange);
-
-
+  
+    if (volumeChart) {
+      volumeChart.timeScale().setVisibleRange(visibleRange);
+    }
+  
     const timeScaleOptions = {
       timeVisible: true,
       secondsVisible: selectedTimeframe.includes('sec'),
     };
-
+  
     chart.timeScale().applyOptions(timeScaleOptions);
-    volumeChart.timeScale().applyOptions(timeScaleOptions);
+  
+    if (volumeChart) {
+      volumeChart.timeScale().applyOptions(timeScaleOptions);
+    }
   };
-
-
-
+  
+  
   useEffect(() => {
     if (!chartRef.current || !aggregatedData[selectedTimeframe]) {
       console.log("Chart not initialized or data not available");
       return;
     }
-
+  
     const data = aggregatedData[selectedTimeframe];
     let adjustedData;
-
+  
     if (chartType === 'line') {
       adjustedData = data.map(item => ({
         time: item.time,
@@ -533,29 +536,40 @@ export default function Home() {
     } else {
       adjustedData = adjustCandleData(data);
     }
-
+  
     if (adjustedData.length === 0) {
       console.error("All data points were invalid for the selected timeframe and chart type", selectedTimeframe, chartType);
       return;
     }
-
-    if (chartType === 'line') {
-      chartRef.current.candleSeries.setData(adjustedData);
-    } else {
-      chartRef.current.candleSeries.setData(adjustedData);
+  
+    chartRef.current.candleSeries.setData(adjustedData);
+  
+    if (chartType !== 'line' && chartRef.current.volumeSeries) {
       chartRef.current.volumeSeries.setData(adjustedData.map(data => ({
         time: data.time,
         value: data.volume,
         color: data.close > data.open ? '#26a69a' : '#ef5350',
       })));
     }
-
+  
+    chartRef.current.chart.applyOptions({
+      width: chartContainerRef.current.clientWidth,
+      height: chartHeight,
+    });
     chartRef.current.chart.timeScale().fitContent();
-    chartRef.current.volumeChart.timeScale().fitContent();
-
+  
+    if (chartRef.current.volumeChart) {
+      chartRef.current.volumeChart.applyOptions({
+        width: volumeChartContainerRef.current.clientWidth,
+        height: volumeChartHeight,
+      });
+      chartRef.current.volumeChart.timeScale().fitContent();
+    }
+  
     setInitialZoom();
-  }, [selectedTimeframe, aggregatedData, chartType]);
-
+  }, [selectedTimeframe, aggregatedData, chartType, chartHeight, volumeChartHeight]);
+  
+  
   useEffect(() => {
     if (selectedTimeframe === '1sec' && chartData.length > 0 && chartRef.current) {
       const chart = chartRef.current.chart;
@@ -565,85 +579,108 @@ export default function Home() {
       chart.timeScale().setVisibleRange({ from, to });
     }
   }, [selectedTimeframe, chartData]);
-
-  const handleMouseDown = (e) => {
-    e.preventDefault(); 
-    setIsResizing(true);
-    setStartY(e.clientY);
-    setStartHeight({
-        chartHeight: chartHeight,
-        volumeChartHeight: volumeChartHeight
-    });
-};
-
-
-
-
-const handleMouseMove = throttle((event) => {
-  if (!isResizing) return;
-  const deltaY = startY - event.clientY;
-  handleResize(deltaY);
-  setStartY(event.clientY);
-}, 16); 
-
-
-useEffect(() => {
-  if (chartContainerRef.current) {
-    chartContainerRef.current.style.height = `${chartHeight}px`;
-  }
-  if (volumeChartContainerRef.current) {
-    volumeChartContainerRef.current.style.height = `${volumeChartHeight}px`;
-  }
-}, [chartHeight, volumeChartHeight]);
-
-
-const handleMouseUp = () => {
-  setIsResizing(false);
-};
-useEffect(() => {
-  const handleResize = () => {
-    setTotalHeight(window.innerHeight * 0.7);
+  
+  const handleMouseDown = (event, componentRef) => {
+    event.preventDefault();
+    const { clientX, clientY } = event;
+    setDragging({ active: true, ref: componentRef, startX: clientX, startY: clientY });
   };
-
-  window.addEventListener('resize', handleResize);
-  return () => {
-    window.removeEventListener('resize', handleResize);
+  
+  const resizeState = useRef({
+    startY: 0,
+    startHeight: 0,
+  });
+  
+  const handleMouseMove = useCallback(
+    (event) => {
+      if (!dragging.active || !dragging.ref) return;
+  
+      const { clientX, clientY } = event;
+      const deltaX = clientX - dragging.startX;
+      const deltaY = clientY - dragging.startY;
+  
+      if (dragging.ref === 'chart') {
+        setChartPosition((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+      } else if (dragging.ref === 'volume') {
+        setVolumePosition((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+      } else if (dragging.ref === 'indicator') {
+        setIndicatorPosition((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+      }
+  
+      setDragging((prev) => ({
+        ...prev,
+        startX: clientX,
+        startY: clientY,
+      }));
+    },
+    [dragging]
+  );
+  
+  const handleMouseUp = () => {
+    setDragging({ active: false, ref: null, startX: 0, startY: 0 });
   };
-}, []);
-useEffect(() => {
-  if (chartContainerRef.current) {
-    chartContainerRef.current.style.height = `${chartHeight}px`;
-  }
-  if (volumeChartContainerRef.current) {
-    volumeChartContainerRef.current.style.height = `${volumeChartHeight}px`;
-  }
-}, [chartHeight, volumeChartHeight]);
+  
+  useEffect(() => {
+    const chartContainer = chartContainerRef.current;
+    if (!chartContainer) return;
+  
+    const handleMouseDown = (event) => {
+      event.preventDefault();
+      setIsResizing(true);
+      resizeState.current.startY = event.clientY;
+      resizeState.current.startHeight = chartContainer.clientHeight;
+    };
+  
+    chartContainer.addEventListener('mousedown', handleMouseDown);
+  
+    return () => {
+      if (chartContainer) {
+        chartContainer.removeEventListener('mousedown', handleMouseDown);
+      }
+    };
+  }, []); 
+  
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setTotalHeight(window.innerHeight * 0.7);
+    };
+  
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+  
 
-const handleResize = useCallback((deltaY) => {
-  const newChartHeight = Math.max(50, chartHeight - deltaY); 
-  const newVolumeChartHeight = Math.max(30, totalHeight - newChartHeight);  
+  
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [handleMouseMove]);
+  
+  const handleResize = useCallback((deltaY) => {
+    const totalHeight = chartHeight + volumeChartHeight + indicatorHeight;
+    const chartProportion = chartHeight / totalHeight;
+    const volumeProportion = volumeChartHeight / totalHeight;
+    const indicatorProportion = indicatorHeight / totalHeight;
+  
+    const newTotalHeight = Math.max(150, totalHeight + deltaY);
+    const newChartHeight = Math.max(50, newTotalHeight * chartProportion);
+    const newVolumeChartHeight = Math.max(30, newTotalHeight * volumeProportion);
+    const newIndicatorHeight = Math.max(50, newTotalHeight * indicatorProportion);
+  
+    setChartHeight(newChartHeight);
+    setVolumeChartHeight(newVolumeChartHeight);
+    setIndicatorHeight(newIndicatorHeight);
+  }, [chartHeight, volumeChartHeight, indicatorHeight]);
+  
 
-
-  setChartHeight(newChartHeight);
-  setVolumeChartHeight(newVolumeChartHeight);
-}, [chartHeight, totalHeight]);
-
-useEffect(() => {
-  if (chartContainerRef.current) {
-      chartContainerRef.current.style.height = `${chartHeight}px`;
-      void chartContainerRef.current.offsetHeight;
-  }
-}, [chartHeight]);
-
-
-useEffect(() => {
-  if (chartContainerRef.current) {
-      chartContainerRef.current.style.height = `${chartHeight}px`;
-  }
-  if (volumeChartContainerRef.current) {
-      volumeChartContainerRef.current.style.height = `${volumeChartHeight}px`;
-  }
-}, [chartHeight, volumeChartHeight]);
 
   const updateCharts = (data) => {
     if (!data || data.length === 0) {
@@ -690,26 +727,29 @@ useEffect(() => {
     };
   }, [isResizing, startY, startHeight]);
 
-  const handleResizeStart = (setHeight, initialHeight) => (event) => {
+  const handleResizeStart = (setHeight, initialHeight, otherSetHeight, otherInitialHeight) => (event) => {
     const startY = event.clientY;
-
+  
     const doResize = (event) => {
       const currentY = event.clientY;
-      const heightChange = startY - currentY; 
+      const heightChange = startY - currentY;
       const newHeight = Math.max(initialHeight + heightChange, 50);
+      const otherNewHeight = Math.max(otherInitialHeight - heightChange, 50);
       setHeight(newHeight);
+      otherSetHeight(otherNewHeight);
     };
-
+  
     const stopResize = () => {
       document.removeEventListener('mousemove', doResize);
       document.removeEventListener('mouseup', stopResize);
-      setResizeFinished(true);  
+      setResizeFinished(true);
     };
-
+  
     document.addEventListener('mousemove', doResize);
     document.addEventListener('mouseup', stopResize);
   };
-
+  
+  
   useEffect(() => {
     if (resizeFinished) {
       updateChartData(selectedTimeframe, chartType); 
@@ -717,23 +757,9 @@ useEffect(() => {
     }
   }, [resizeFinished, selectedTimeframe, chartType]);
 
-  const ResizeHandle = ({ onStartResizing }) => (
-    <div
-        style={{
-            position: 'absolute',
-            top: '-5px',
-            left: 0,
-            right: 0,
-            height: '10px',
-            cursor: 'ns-resize',
-            backgroundColor: 'rgba(255, 255, 255, 0.5)',
-            zIndex: 9999,
-        }}
-        onMouseDown={onStartResizing}
-    ></div>
-);
 
-const chartStyle = isResizing ? { border: '2px solid blue' } : {};
+  
+  const chartStyle = isResizing ? { border: '2px solid blue' } : {};
 
   useEffect(() => {
     if (resizeFinished) {
@@ -743,63 +769,103 @@ const chartStyle = isResizing ? { border: '2px solid blue' } : {};
   }, [resizeFinished, selectedTimeframe]);
 
 
+    useEffect(() => {
+      const handleResize = () => {
+        if (containerRef.current) {
+          const totalHeight = containerRef.current.clientHeight;
+          const totalAssignedHeight = chartHeight + volumeChartHeight + indicatorHeight;
+          const scaleFactor = totalHeight / totalAssignedHeight;
+          setChartHeight(Math.floor(chartHeight * scaleFactor));
+          setVolumeChartHeight(Math.floor(volumeChartHeight * scaleFactor));
+          setIndicatorHeight(Math.floor(indicatorHeight * scaleFactor));
+        }
+      };
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, [chartHeight, volumeChartHeight, indicatorHeight, setChartHeight, setVolumeChartHeight, setIndicatorHeight]);
+  
+    const adjustProportions = useCallback((deltaY, minFirst, minSecond) => {
+      const totalHeight = containerRef.current.clientHeight;
+      const newChartHeight = Math.max(chartHeight - deltaY, minFirst);
+      const newVolumeChartHeight = Math.max(volumeChartHeight + deltaY, minSecond);
+      const remainingHeight = totalHeight - newChartHeight - newVolumeChartHeight;
+      setChartHeight(newChartHeight);
+      setVolumeChartHeight(newVolumeChartHeight);
+      setIndicatorHeight(Math.max(remainingHeight, 50)); 
+    }, [chartHeight, volumeChartHeight, indicatorHeight, setChartHeight, setVolumeChartHeight, setIndicatorHeight]);
+  
+    const handleChartVolumeResize = useCallback((e) => {
+      setIsResizing(true);
+      setStartY(e.clientY);
+    
+      const onMouseMove = (e) => {
+        if (isResizing) {
+          const deltaY = startY - e.clientY;
+          const newChartHeight = chartHeight - deltaY;
+          const newVolumeChartHeight = volumeChartHeight + deltaY;
+    
+          if (newChartHeight >= 100 && newVolumeChartHeight >= 50) {
+            setChartHeight(newChartHeight);
+            setVolumeChartHeight(newVolumeChartHeight);
+          }
+        }
+      };
+    
+      const stopResize = () => {
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', stopResize);
+        setIsResizing(false);
+      };
+    
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', stopResize);
+    }, [chartHeight, volumeChartHeight, startY, isResizing]);
+    
+    
+  
+  
   return (
-
-    <main className="flex flex-col  bg-[#1F1F2E]" style={{ height: '100vh', overflow: 'hidden' }}>
-      <ResizeHandle onStartResizing={handleResizeStart(setVolumeChartHeight, volumeChartHeight, setResizeFinished)} />
-      <ChartControls
-        selectedTimeframe={selectedTimeframe}
-        onTimeframeChange={setSelectedTimeframe}
-        selectedIndicator={selectedIndicator}
-        onIndicatorChange={setSelectedIndicator}
-        chartType={chartType}
-        onChartTypeChange={handleChartTypeChange}
-      />
-
-      <DisplayControls
-        onLogScaleChange={handleLogScaleChange}
-        onPercentageDisplayChange={handlePercentageDisplayChange}
-        onAutoScaleChange={handleAutoScale}
-      />
-<div
-  ref={chartContainerRef}
-  className="chart-container"
-  style={{ ...chartStyle, flex: 1, height: `${chartHeight}px`, minHeight: '50px' }}
->
-  <ResizeHandle onStartResizing={handleMouseDown} />
+    
+<ResizableBox
+    chartHeight={chartHeight}
+    setChartHeight={setChartHeight}
+    volumeChartHeight={volumeChartHeight}
+    setVolumeChartHeight={setVolumeChartHeight}
+    indicatorHeight={indicatorHeight}
+    setIndicatorHeight={setIndicatorHeight}
+    chartContainerRef={chartContainerRef}
+    volumeChartContainerRef={volumeChartContainerRef}
+  >
+      <main className="flex flex-col bg-[#1F1F2E]" style={{ height: '100vh', overflow: 'hidden' }}>
+        <ChartControls
+          selectedTimeframe={selectedTimeframe}
+          onTimeframeChange={setSelectedTimeframe}
+          selectedIndicator={selectedIndicator}
+          onIndicatorChange={setSelectedIndicator}
+          chartType={chartType}
+          onChartTypeChange={handleChartTypeChange}
+        />
+  
+        <DisplayControls
+          onLogScaleChange={handleLogScaleChange}
+          onPercentageDisplayChange={handlePercentageDisplayChange}
+          onAutoScaleChange={handleAutoScale}
+        />
+  
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1 }}>
+  <div ref={chartContainerRef} style={{ position: 'relative', height: chartHeight }}></div>
+  <ResizeHandle onResize={handleChartVolumeResize} />
+</div>
+<div style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>
+  <div ref={volumeChartContainerRef} style={{ height: volumeChartHeight, position: 'relative' }}></div>
 </div>
 
-
-
-
-<div style={{ position: 'relative' }}>
-  <div
-    ref={volumeChartContainerRef}
-    className="volume-chart-container"
-    style={{ ...chartStyle, height: `${volumeChartHeight}px` }}
-  />
-  <ResizeHandle onStartResizing={handleMouseDown} />
-</div>
-
-<div style={{ position: 'relative' }}>
-  <div style={{ height: `${indicatorHeight}px` }}>
-    <IndicatorDisplay
-      indicator={selectedIndicator}
-      ohlcData={chartData}
-      chartRef={chartRef}
-      macdContainerRef={selectedIndicator === 'macd' ? macdContainerRef : null}
-    />
-  </div>
-  <ResizeHandle onStartResizing={handleMouseDown} />
-</div>
-
-{selectedIndicator === 'macd' && (
-  <div
-    ref={macdContainerRef}
-    className="macd-chart-container"
-    style={{ width: '100%', height: `${indicatorHeight}px`, overflow: 'hidden' }}
-  ></div>
-)}
-</main>
-);
+        <div style={{ position: 'relative', height: '200px' }}>
+          <IndicatorDisplay indicator={selectedIndicator} ohlcData={chartData} chartRef={chartRef} />
+        </div>
+      </main>
+    </ResizableBox>
+  );
+  
 }
+  
