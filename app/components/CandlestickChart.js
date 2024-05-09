@@ -42,7 +42,24 @@ export default function Home() {
   const [indicatorPosition, setIndicatorPosition] = useState({ x: 0, y: 300 });
   const [dragging, setDragging] = useState({ active: false, ref: null, startX: 0, startY: 0 });
 
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) { 
+        setChartHeight(300);
+        setVolumeChartHeight(100);
+      } else {
+        setChartHeight(820); 
+        setVolumeChartHeight(280);
+      }
+    };
 
+    handleResize(); 
+    window.addEventListener("resize", handleResize); 
+
+    return () => {
+      window.removeEventListener("resize", handleResize); 
+    };
+  }, []); 
   const handleChartTypeChange = () => {
     const newChartType = chartType === 'candlestick' ? 'line' : 'candlestick';
     setChartType(newChartType);
@@ -836,7 +853,7 @@ export default function Home() {
     chartContainerRef={chartContainerRef}
     volumeChartContainerRef={volumeChartContainerRef}
   >
-      <main className="flex flex-col bg-[#1F1F2E]" style={{ height: '100vh', overflow: 'hidden' }}>
+      <main className="flex flex-col bg-[#1F1F2E]" style={{ overflow: 'hidden' }}>
         <ChartControls
           selectedTimeframe={selectedTimeframe}
           onTimeframeChange={setSelectedTimeframe}

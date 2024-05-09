@@ -10,10 +10,22 @@ const ResizableBox = React.memo(({
     setIndicatorHeight,
   }) => {
     const containerRef = useRef(null);
-    const isResizing = useRef(false);
-    const startY = useRef(0);
-  
-  
+
+    const handleResize = useCallback(() => {
+      if (!containerRef.current) return;
+      const totalHeight = containerRef.current.clientHeight;
+      const totalAssignedHeight = chartHeight + volumeChartHeight + indicatorHeight;
+      const scaleFactor = totalHeight / totalAssignedHeight;
+      setChartHeight(Math.floor(chartHeight * scaleFactor));
+      setVolumeChartHeight(Math.floor(volumeChartHeight * scaleFactor));
+      setIndicatorHeight(Math.floor(indicatorHeight * scaleFactor));
+    }, [chartHeight, volumeChartHeight, indicatorHeight, setChartHeight, setVolumeChartHeight, setIndicatorHeight]);
+
+    useEffect(() => {
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, [handleResize]);
+
     const enhancedChildren = React.Children.map(children, (child, index) => {
       const height = index === 0 ? chartHeight : index === 1 ? volumeChartHeight : indicatorHeight;
       return (
@@ -24,7 +36,7 @@ const ResizableBox = React.memo(({
     });
   
     return (
-        <div ref={containerRef} style={{ height: '100vh', overflow: 'hidden', position: 'relative' }}>
+      <div ref={containerRef} style={{ height: '100vh', overflow: 'hidden', position: 'relative' }}>
         {enhancedChildren}
       </div>
     );
