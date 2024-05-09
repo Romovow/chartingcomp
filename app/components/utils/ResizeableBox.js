@@ -29,5 +29,7 @@ const ResizableBox = React.memo(({
       </div>
     );
   });
-  
+
+ResizableBox.displayName = 'ResizableBox';
+
 export default ResizableBox;
