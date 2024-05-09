@@ -8,8 +8,7 @@ const ResizeHandle = ({ onResize }) => {
 
   const handleMouseMove = (e) => {
     if (isResizing) {
-      onResize(e.clientY - lastTouchY);
-      setLastTouchY(e.clientY);
+      onResize(e);
     }
   };
 
@@ -18,11 +17,11 @@ const ResizeHandle = ({ onResize }) => {
       document.body.style.overflow = 'hidden';
 
       const touchY = e.touches[0].clientY;
-      if (lastTouchY!== null) {
+      if (lastTouchY !== null) {
         const deltaY = touchY - lastTouchY;
-        onResize(deltaY);
-        setLastTouchY(touchY);
+        onResize({ clientY: e.clientY + deltaY });
       }
+      setLastTouchY(touchY);
     }
   };
 
@@ -61,7 +60,6 @@ const ResizeHandle = ({ onResize }) => {
   const handleMouseDown = (e) => {
     e.preventDefault();
     setIsResizing(true);
-    setLastTouchY(e.clientY);
   };
 
   const handleTouchStart = (e) => {
@@ -73,8 +71,8 @@ const ResizeHandle = ({ onResize }) => {
   const handleKeyDown = (e) => {
     if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
-      const deltaY = e.key === 'ArrowUp'? -10 : 10;
-      onResize(deltaY);
+      const deltaY = e.key === 'ArrowUp' ? -10 : 10;
+      onResize({ clientY: e.clientY + deltaY });
     }
   };
 
@@ -96,7 +94,7 @@ const ResizeHandle = ({ onResize }) => {
       style={{
         height: '10px',
         cursor: 'ns-resize',
-        backgroundColor: isResizing? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.5)',
+        backgroundColor: isResizing ? 'rgba(255, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.5)',
         zIndex: 9999,
         position: 'absolute',
         width: '100%',
