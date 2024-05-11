@@ -6,8 +6,7 @@ import { FiX, FiTrendingUp, FiMinus, FiSquare, FiCircle, FiArrowRightCircle, FiC
 import ToolIcon from './utils/ToolIcon';
 import './styles/DrawingTools.scss';
 import { toolGroups, groupIcons } from './config/toolsConfig';
-import { executeDrawing } from './utils/drawingInstance';  // Adjust the import path as necessary
-
+import { executeDrawing } from './utils/drawingInstance';  
 
 const DrawingTools = ({ chartRef }) => {
     const [drawingMode, setDrawingMode] = useState('none');
@@ -16,7 +15,7 @@ const DrawingTools = ({ chartRef }) => {
     const handleRef = useRef();
     const drawingRef = useRef({ currentDrawing: null });
     const [selectedTool, setSelectedTool] = useState(null);
-    const [openGroups, setOpenGroups] = useState({});  // Using an object to track open groups
+    const [openGroups, setOpenGroups] = useState({});  
 
     const toggleToolbar = () => {
         const newVisibility = !toolbarVisible;
@@ -30,7 +29,7 @@ const DrawingTools = ({ chartRef }) => {
             x: newVisibility ? 50 : 0,
         });
     };
-    
+
 
     const toggleGroup = (groupName) => {
         setOpenGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
@@ -39,7 +38,7 @@ const DrawingTools = ({ chartRef }) => {
     const handleToolSelection = (tool) => {
         setSelectedTool(tool);
         if (chartRef && chartRef.current) {
-            executeDrawing(tool, chartRef.current);  // Execute the drawing function for the selected tool
+            executeDrawing(tool, chartRef.current); 
         } else {
             console.error("Chart reference is not defined.");
         }

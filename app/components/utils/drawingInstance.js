@@ -1,18 +1,17 @@
 import { drawTrendLine } from './drawingFunctions/trendLine';
 
-// Import other drawing functions as needed
 
 export const drawFunctions = {
     LineToolTrendLine: drawTrendLine,
     LineToolRectangle: drawTrendLine,
     LineToolEllipse: drawTrendLine,
-    // Map other tools to their respective functions
+
 };
 
-export const executeDrawing = (toolName, chart) => {
-    if (drawFunctions[toolName]) {
-        drawFunctions[toolName](chart);
+export const executeDrawing = (toolName, chartRef) => {
+    if (drawFunctions[toolName] && chartRef) {
+        drawFunctions[toolName](chartRef);
     } else {
-        console.error("Drawing function not found for tool:", toolName);
+        console.error("Drawing function not found for tool, or chart reference is missing:", toolName);
     }
 };
