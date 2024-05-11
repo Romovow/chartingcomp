@@ -1,5 +1,7 @@
 import React from 'react';
-// Import all SVG files
+
+
+
 import LineTool5PointsPattern from '../icons/LineTool5PointsPattern.svg';
 import LineToolABCD from '../icons/LineToolABCD.svg';
 import LineToolArc from '../icons/LineToolArc.svg';
@@ -179,9 +181,12 @@ const ToolIcon = ({ toolName }) => {
         'LineToolHighlighter': LineToolHighlighter
     };
 
-    const ToolIcon = icons[toolName];
+    const IconComponent = icons[toolName];
+    if (!IconComponent) {
+        return <p>Icon not found</p>;
+    }
 
-    return <ToolIcon />;
+    return <IconComponent />;
 };
 
 export default ToolIcon;

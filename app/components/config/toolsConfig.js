@@ -2,7 +2,7 @@
 import ToolIcon from '../utils/ToolIcon'; 
 
 export const groupIcons = {
-    'Trend Lines': <ToolIcon toolName="LineToolTrendLine" />,
+    'Trend Lines': <ToolIcon toolName="Test" />,
     'Shapes': <ToolIcon toolName="LineToolRectangle" />,
     'Patterns': <ToolIcon toolName="LineToolHeadAndShoulders" />,
     'Fibonacci': <ToolIcon toolName="LineToolFibRetracement" />,
