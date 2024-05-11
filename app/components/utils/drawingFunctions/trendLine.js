@@ -38,7 +38,8 @@ export const drawTrendLine = (chartRef) => {
         if (!startPrice) {
             startPrice = { time: param.time, value: value };
             console.log('Start Point Set:', startPrice);
-                tempLine = chart.addLineSeries({
+            // Initialize temporary line to follow the mouse
+            tempLine = chart.addLineSeries({
                 color: 'red',
                 lineWidth: 1,
                 lineStyle: 2, 

@@ -1,8 +1,7 @@
 // DrawingTools.js
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import gsap from 'gsap';
-import { createPriceLine, createTrendLine, createRectangle, createEllipse } from './utils/chartUtils';
-import { FiX, FiTrendingUp, FiMinus, FiSquare, FiCircle, FiArrowRightCircle, FiChevronRight, FiChevronLeft, FiZap, FiLayers, FiTarget, FiCompass } from 'react-icons/fi';
+import {FiChevronRight, FiChevronLeft} from 'react-icons/fi';
 import ToolIcon from './utils/ToolIcon';
 import './styles/DrawingTools.scss';
 import { toolGroups, groupIcons } from './config/toolsConfig';
