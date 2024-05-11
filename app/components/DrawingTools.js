@@ -1,6 +1,7 @@
 // DrawingTools.js
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import gsap from 'gsap';
+
 import {FiChevronRight, FiChevronLeft} from 'react-icons/fi';
 import ToolIcon from './utils/ToolIcon';
 import './styles/DrawingTools.scss';

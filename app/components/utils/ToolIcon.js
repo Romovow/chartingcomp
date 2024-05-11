@@ -179,12 +179,6 @@ const ToolIcon = ({ toolName }) => {
         'LineToolHighlighter': LineToolHighlighter
     };
 
-    const IconComponent = icons[toolName];
-    if (!IconComponent) {
-        return <p>Icon not found</p>;
-    }
-
-    return <IconComponent />;
-};
+}
 
 export default ToolIcon;
