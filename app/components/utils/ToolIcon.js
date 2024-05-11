@@ -179,6 +179,9 @@ const ToolIcon = ({ toolName }) => {
         'LineToolHighlighter': LineToolHighlighter
     };
 
-}
+    const ToolIcon = icons[toolName];
+
+    return <ToolIcon />;
+};
 
 export default ToolIcon;
