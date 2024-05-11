@@ -3,8 +3,7 @@ import { drawTrendLine } from './drawingFunctions/trendLine';
 
 export const drawFunctions = {
     LineToolTrendLine: drawTrendLine,
-    LineToolRectangle: drawTrendLine,
-    LineToolEllipse: drawTrendLine,
+
 
 };
 

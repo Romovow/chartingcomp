@@ -100,6 +100,7 @@ const ResizeHandle = ({ onResize }) => {
         width: '100%',
         bottom: '-5px',
       }}
+      
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
       onMouseOver={handleMouseOver}
