@@ -9,7 +9,7 @@ import throttle from 'lodash/throttle';
 import AlignmentLineControl from './AlignmentLineControl';
 import ResizableBox from "./utils/ResizeableBox";
 import ResizeHandle from './utils/ResizeHandle';
-import { set } from "lodash";
+import DrawingTools from "./DrawingTools";
 
 export default function Home() {
   const [chartType, setChartType] = useState('candlestick');
@@ -28,6 +28,8 @@ export default function Home() {
   const [macdHeight, setMacdHeight] = useState();
   const [chartHeight, setChartHeight] = useState(820);
 
+  const [drawingMode, setDrawingMode] = useState('none'); 
+
   const [volumeChartHeight, setVolumeChartHeight] = useState(280);
   const [indicatorHeight, setIndicatorHeight] = useState(200);
 
@@ -41,6 +43,9 @@ export default function Home() {
   const [volumePosition, setVolumePosition] = useState({ x: 0, y: 150 });
   const [indicatorPosition, setIndicatorPosition] = useState({ x: 0, y: 300 });
   const [dragging, setDragging] = useState({ active: false, ref: null, startX: 0, startY: 0 });
+
+
+  
 
   useEffect(() => {
     const handleResize = () => {
@@ -853,8 +858,16 @@ export default function Home() {
     chartContainerRef={chartContainerRef}
     volumeChartContainerRef={volumeChartContainerRef}
   >
+  
       <main className="flex flex-col bg-[#1F1F2E]" style={{ overflow: 'hidden' }}>
-        <ChartControls
+      <DrawingTools chartRef={chartRef} />
+   
+  
+        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1 }}>
+     
+  <div ref={chartContainerRef} style={{ position: 'relative', height: chartHeight }}></div>
+
+  <ChartControls
           selectedTimeframe={selectedTimeframe}
           onTimeframeChange={setSelectedTimeframe}
           selectedIndicator={selectedIndicator}
@@ -862,15 +875,11 @@ export default function Home() {
           chartType={chartType}
           onChartTypeChange={handleChartTypeChange}
         />
-  
-        <DisplayControls
+       <DisplayControls
           onLogScaleChange={handleLogScaleChange}
           onPercentageDisplayChange={handlePercentageDisplayChange}
           onAutoScaleChange={handleAutoScale}
         />
-  
-        <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', flex: 1 }}>
-  <div ref={chartContainerRef} style={{ position: 'relative', height: chartHeight }}></div>
   <ResizeHandle onResize={handleChartVolumeResize} />
 </div>
 <div style={{ position: 'relative', display: 'flex', flexDirection: 'column' }}>

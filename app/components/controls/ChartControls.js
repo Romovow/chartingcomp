@@ -2,17 +2,17 @@ import React, { useState } from 'react';
 import './ChartControls.css'; 
 
 const ChartControls = ({ selectedTimeframe, onTimeframeChange, selectedIndicator, onIndicatorChange, onChartTypeChange }) => {
-  const [chartType, setChartType] = useState('candlestick'); 
+  const [chartType, setChartType] = useState('candlestick');
 
   const timeframes = [
-    { label: '1sec', value: '1sec' },
-    { label: '5sec', value: '5sec' },
-    { label: '15sec', value: '15sec' },
-    { label: '30sec', value: '30sec' },
-    { label: '1min', value: '1min' },
-    { label: '5min', value: '5min' },
-    { label: '15min', value: '15min' },
-    { label: '30min', value: '30min' },
+    { label: '1s', value: '1sec' },
+    { label: '5s', value: '5sec' },
+    { label: '15s', value: '15sec' },
+    { label: '30s', value: '30sec' },
+    { label: '1m', value: '1min' },
+    { label: '5m', value: '5min' },
+    { label: '15m', value: '15min' },
+    { label: '30m', value: '30min' },
     { label: '1H', value: '1H' },
     { label: '4H', value: '4H' },
     { label: '1D', value: '1D' },
@@ -22,24 +22,25 @@ const ChartControls = ({ selectedTimeframe, onTimeframeChange, selectedIndicator
 
   const indicators = [
     { label: 'None', value: '' },
-    { label: 'Moving Average', value: 'ma' },
-    { label: 'Exponential MA', value: 'ema' },
-    { label: 'Bollinger Bands', value: 'bollinger' },
+    { label: 'MA', value: 'ma' },
+    { label: 'EMA', value: 'ema' },
+    { label: 'Boll', value: 'bollinger' },
     { label: 'MACD', value: 'macd' }
   ];
 
-
   return (
-    <div className="chart-controls">
-      {timeframes.map((timeframe) => (
-        <button
-          key={timeframe.value}
-          className={`timeframe-button ${selectedTimeframe === timeframe.value ? 'active' : ''}`}
-          onClick={() => onTimeframeChange(timeframe.value)}
-        >
-          {timeframe.label}
-        </button>
-      ))}
+    <div className="chart-controls-overlay">
+      <div className="timeframe-controls">
+        {timeframes.map((timeframe) => (
+          <button
+            key={timeframe.value}
+            className={`timeframe-button ${selectedTimeframe === timeframe.value ? 'active' : ''}`}
+            onClick={() => onTimeframeChange(timeframe.value)}
+          >
+            {timeframe.label}
+          </button>
+        ))}
+      </div>
       <select
         className="indicator-select"
         value={selectedIndicator}
@@ -52,14 +53,17 @@ const ChartControls = ({ selectedTimeframe, onTimeframeChange, selectedIndicator
         ))}
       </select>
       <button
-  className={`px-4 py-2 rounded ${
-    chartType === 'candlestick' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-  }`}
-  onClick={onChartTypeChange}
->
-  {chartType === 'candlestick' ? 'Switch to Line Chart' : 'Switch to Candlestick Chart'}
-</button>
-
+        className={`chart-type-button ${
+          chartType === 'candlestick' ? 'active' : ''
+        }`}
+        onClick={() => {
+          const newChartType = chartType === 'candlestick' ? 'line' : 'candlestick';
+          setChartType(newChartType);
+          onChartTypeChange(newChartType);
+        }}
+      >
+        {chartType === 'candlestick' ? 'Line' : 'Candle'}
+      </button>
     </div>
   );
 };

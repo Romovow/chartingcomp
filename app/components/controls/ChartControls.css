@@ -1,36 +1,38 @@
-.chart-controls {
+.chart-controls-overlay {
+    position: absolute;
+    top: 10px;
+    left: 10px; 
+    margin-left: 120px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 10px;
-    background-color: #131722; 
-    overflow: hidden; 
-    align-items: center; 
-}
-
-.timeframe-button, .indicator-select {
-    padding: 8px 16px;
-    border: 1px solid #2B2B43;
-    background-color: #1F1F2E;
-    color: #d1d4dc;
-    cursor: pointer;
-    transition: background-color 0.3s ease, border-color 0.3s ease;
+    flex-direction: row;
+    align-items: flex-start; 
+    background-color: rgba(0, 0, 0, 0.6); 
+    padding: 5px;
+    border-radius: 5px;
+    z-index: 10;
+  }
+  .timeframe-button, .chart-type-button {
+    background-color: rgba(255, 255, 255, 0.8);
+    border: none;
+    padding: 5px 10px;
     border-radius: 4px;
-    font-size: 14px;
-}
-
-.timeframe-button:hover, .indicator-select:hover {
-    background-color: #29293d;
-    border-color: #565673;
-}
-
-.timeframe-button.active {
-    background-color: #565673;
-    color: #FFFFFF;
-    border-color: #73738D;
-}
-
-.indicator-select {
-    appearance: none; 
-    width: auto;
-}
+    cursor: pointer;
+    font-size: 12px;
+    margin: 2px 0; 
+  }
+  
+  .timeframe-button.active, .chart-type-button.active {
+    background-color: #4CAF50; 
+    color: white;
+  }
+  
+  .indicator-select {
+    background-color: #333; 
+    color: white; 
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    margin: 2px 0;
+  }
+  

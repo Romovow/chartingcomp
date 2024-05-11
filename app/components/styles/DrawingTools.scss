@@ -1,0 +1,102 @@
+.drawing-container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 50px;  // Consider adjusting when toggled
+    height: 100%;
+    z-index: 2000;
+    transition: width 0.3s ease-in-out;
+
+    .toolbar {
+        .tool-group-header {
+            .group-button {
+                display: flex;
+                align-items: center;
+                justify-content: space-between; // Space elements nicely
+                background-color: #1f1f2e;
+                color: #ffffff;
+                padding: 12px 15px;  // Slightly more padding for prominence
+                border: none;
+                cursor: pointer;
+                transition: background-color 0.2s, transform 0.2s; // Smooth transition for hover effects
+                border-radius: 6px; // Rounded corners for a modern look
+
+                &:hover {
+                    background-color: #333; // Darken on hover for feedback
+                    transform: scale(1.05); // Slightly enlarge to indicate activation
+                }
+
+                .group-name {
+                    margin-left: 10px;
+                    display: none; // Hidden by default
+                }
+
+                &:hover .group-name {
+                    display: inline; // Show on hover
+                }
+            }
+
+            .tool-group {
+
+                flex-direction: column;
+                background-color: #2c2c3d; // Slightly darker to differentiate from group-button
+                color: #ffffff;
+                padding: 5px 0; // Consistent internal padding
+                border: none;
+                cursor: pointer;
+            }
+
+            .tool-button {
+                display: flex;
+                align-items: center;
+                justify-content: space-between; // Space elements nicely
+                padding: 8px 15px; // Slightly less padding than group-button for distinction
+                background-color: #333; // Even darker to stand out as a sublevel
+                color: #ffffff;
+                margin: 2px 0; // Give some space between buttons
+                border-radius: 4px; // Rounded corners for a softer look
+                transition: background-color 0.2s, transform 0.2s; // Smooth transition for hover effects
+
+                &:hover {
+                    background-color: #575757; // Lighten on hover
+                    transform: translateX(5px); // Move slightly to indicate activation
+                }
+            }
+        }
+    }
+
+    .selected-tool-display {
+        margin-top: 20px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .handle {
+        position: absolute;
+        right: -30px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        background-color: #1f1f2e;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+    }
+
+    .drawing-area {
+        position: absolute;
+        left: 50px; // Adjust if necessary when toolbar toggles
+        top: 0;
+        right: 0;
+        bottom: 0;
+    }
+    .tool-button.active {
+        border: 2px solid #3498db; /* Highlight color */
+        background-color: #333;
+    }
+    
+}
