@@ -1,7 +1,5 @@
 import React from 'react';
-
-
-
+// Import all SVG files
 import LineTool5PointsPattern from '../icons/LineTool5PointsPattern.svg';
 import LineToolABCD from '../icons/LineToolABCD.svg';
 import LineToolArc from '../icons/LineToolArc.svg';
@@ -97,12 +95,12 @@ const ToolIcon = ({ toolName }) => {
       'LineToolABCD': LineToolABCD,
       'LineToolArc': LineToolArc,
       'LineToolArrow': LineToolArrow,
-       'LineToolArrowMarker': LineToolArrowMarker,
+      'LineToolArrowMarker': LineToolArrowMarker,
       'LineToolArrowMarkDown': LineToolArrowMarkDown,
       'LineToolArrowMarkLeft': LineToolArrowMarkLeft,
       'LineToolArrowMarkRight': LineToolArrowMarkRight,
       'LineToolArrowMarkUp': LineToolArrowMarkUp,
-       'LineToolBalloon': LineToolBalloon,
+      'LineToolBalloon': LineToolBalloon,
       'LineToolComment': LineToolComment,
       'LineToolBarsPattern': LineToolBarsPattern,
       'LineToolBezierCubic': LineToolBezierCubic,
@@ -114,7 +112,7 @@ const ToolIcon = ({ toolName }) => {
       'LineToolCypherPattern': LineToolCypherPattern,
       'LineToolDateAndPriceRange': LineToolDateAndPriceRange,
       'LineToolDateRange': LineToolDateRange,
-          'LineToolDisjointAngle': LineToolDisjointAngle,
+      'LineToolDisjointAngle': LineToolDisjointAngle,
       'LineToolElliottCorrection': LineToolElliottCorrection,
       'LineToolElliottDoubleCombo': LineToolElliottDoubleCombo,
       'LineToolElliottImpulse': LineToolElliottImpulse,
@@ -139,7 +137,7 @@ const ToolIcon = ({ toolName }) => {
         'LineToolGannSquare': LineToolGannSquare,
         'LineToolGhostFeed': LineToolGhostFeed,
         'LineToolHeadAndShoulders': LineToolHeadAndShoulders,
-    'LineToolHorzLine': LineToolHorzLine,
+        'LineToolHorzLine': LineToolHorzLine,
         'LineToolHorzRay': LineToolHorzRay,
         'LineToolInsidePitchfork': LineToolInsidePitchfork,
         'LineToolNote': LineToolNote,
@@ -149,7 +147,7 @@ const ToolIcon = ({ toolName }) => {
         'LineToolPitchfan': LineToolPitchfan,
         'LineToolPitchfork': LineToolPitchfork,
         'LineToolPolyline': LineToolPolyline,
-    'LineToolPath': LineToolPath,
+        'LineToolPath': LineToolPath,
         'LineToolPrediction': LineToolPrediction,
         'LineToolPriceLabel': LineToolPriceLabel,
         'LineToolPriceNote': LineToolPriceNote,
@@ -181,12 +179,17 @@ const ToolIcon = ({ toolName }) => {
         'LineToolHighlighter': LineToolHighlighter
     };
 
-    const IconComponent = icons[toolName];
+
+
+    const IconComponent = icons[toolName]; // This will be a component, not a string
+
     if (!IconComponent) {
+        console.error("Icon not found for tool:", toolName);
         return <p>Icon not found</p>;
     }
 
+    // Render SVG component directly
     return <IconComponent />;
-};
+}
 
 export default ToolIcon;
