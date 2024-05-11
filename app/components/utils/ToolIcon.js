@@ -181,14 +181,13 @@ const ToolIcon = ({ toolName }) => {
 
 
 
-    const IconComponent = icons[toolName]; // This will be a component, not a string
+    const IconComponent = icons[toolName]; 
 
     if (!IconComponent) {
         console.error("Icon not found for tool:", toolName);
         return <p>Icon not found</p>;
     }
 
-    // Render SVG component directly
     return <IconComponent />;
 }
 
