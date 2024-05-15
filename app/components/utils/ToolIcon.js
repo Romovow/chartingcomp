@@ -88,7 +88,7 @@ import LineToolCrossLine from '../icons/LineToolCrossLine.svg';
 import LineToolHighlighter from '../icons/LineToolHighlighter.svg';
 
 const ToolIcon = ({ toolName }) => {
-    console.log("Tool Name:", toolName); // Debug: Check the tool name received
+    // console.log("Tool Name:", toolName); // Debug: Check the tool name received
   
     const icons = {
       'LineTool5PointsPattern': LineTool5PointsPattern,
@@ -184,8 +184,7 @@ const ToolIcon = ({ toolName }) => {
     const IconComponent = icons[toolName]; 
 
     if (!IconComponent) {
-        console.error("Icon not found for tool:", toolName);
-        return <p>Icon not found</p>;
+        return;
     }
 
     return <IconComponent />;

@@ -15,19 +15,19 @@ const fetchChartData = async (timeframe) => {
         });
 
         if (!response.ok) {
-            throw new Error("Failed to fetch data");
+            // throw new Error("Failed to fetch data");
         }
 
         const data = await response.json();
         const aggregatedData = data[timeframe];
         if (aggregatedData.length === 0) {
-            console.error("No data available for the selected timeframe");
+            // console.error("No data available for the selected timeframe");
             return;
         }
 
         return aggregatedData;
     } catch (error) {
-        console.error("Error fetching aggregated data:", error.message);
+        // console.error("Error fetching aggregated data:", error.message);
     }
 };
 
