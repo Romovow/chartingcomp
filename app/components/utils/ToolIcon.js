@@ -181,13 +181,6 @@ const ToolIcon = ({ toolName }) => {
 
 
 
-    const IconComponent = icons[toolName]; 
-
-    if (!IconComponent) {
-        return;
-    }
-
-    return <IconComponent />;
 }
 
 export default ToolIcon;
