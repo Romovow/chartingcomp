@@ -94,6 +94,26 @@
         right: 0;
         bottom: 0;
     }
+    .close-drawing-button {
+        position: fixed; 
+        top: 10px;
+        right: 10px;
+        padding: 10px 15px;
+        background-color: red;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        z-index: 10;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2); 
+        transition: background-color 0.3s; 
+      }
+      
+      .close-drawing-button:hover {
+        background-color: darkred;
+      }
+      
+      
     .tool-button.active {
         border: 2px solid #3498db; /* Highlight color */
         background-color: #333;

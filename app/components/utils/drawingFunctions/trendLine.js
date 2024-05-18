@@ -4,7 +4,7 @@ import { useMouseContext } from '../../context/MouseContext';
 const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
     const { isDrawing, setIsDrawing, selectedTool, setSelectedTool } = useMouseContext();
     const [line, setLine] = useState(null);
-    const [drawingStage, setDrawingStage] = useState(0); // 0: not drawing, 1: start point set, 2: end point set
+    const [drawingStage, setDrawingStage] = useState(0);
     const [movingPoint, setMovingPoint] = useState(null);
     const [lineSeries, setLineSeries] = useState(null);
     const [initialClick, setInitialClick] = useState(null);
@@ -29,6 +29,14 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
         };
     };
 
+    const formatDate = (time) => {
+        const date = new Date(time * 1000);
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}/${mm}/${dd}`;
+    };
+
     useEffect(() => {
         if (!canvasRef.current || !chartRef.current) return;
 
@@ -42,14 +50,71 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
             ctx.fill();
         };
 
+        const drawText = (text, x, y, color = 'black', fontSize = '14px', fontWeight = 'bold', backgroundColor = 'rgba(255, 255, 255, 0.8)') => {
+            ctx.fillStyle = backgroundColor;
+            const padding = 2;
+            const textWidth = ctx.measureText(text).width;
+            ctx.fillRect(x - padding, y - parseInt(fontSize, 10), textWidth + padding * 2, parseInt(fontSize, 10) + padding * 2);
+            ctx.fillStyle = color;
+            ctx.font = `${fontWeight} ${fontSize} Arial`;
+            ctx.textBaseline = 'top';
+            ctx.fillText(text, x, y - parseInt(fontSize, 10) + padding);
+        };
+
+        const drawTextWithBackground = (text, x, y, textColor, fontSize, fontWeight, bgColor, marginBottom = 0) => {
+            ctx.font = `${fontWeight} ${fontSize}`;
+            ctx.textBaseline = 'top';
+            const padding = 5;
+        
+
+            const textMetrics = ctx.measureText(text);
+            const textWidth = textMetrics.width;
+            const textHeight = parseInt(fontSize, 10);
+
+            ctx.fillStyle = bgColor;
+
+            const rectX = x - padding;
+            const rectY = y - padding - marginBottom;
+            const rectWidth = textWidth + padding * 2;
+            const rectHeight = textHeight + padding * 2;
+            const cornerRadius = 5;
+        
+            ctx.beginPath();
+            ctx.moveTo(rectX + cornerRadius, rectY);
+            ctx.lineTo(rectX + rectWidth - cornerRadius, rectY);
+            ctx.quadraticCurveTo(rectX + rectWidth, rectY, rectX + rectWidth, rectY + cornerRadius);
+            ctx.lineTo(rectX + rectWidth, rectY + rectHeight - cornerRadius);
+            ctx.quadraticCurveTo(rectX + rectWidth, rectY + rectHeight, rectX + rectWidth - cornerRadius, rectY + rectHeight);
+            ctx.lineTo(rectX + cornerRadius, rectY + rectHeight);
+            ctx.quadraticCurveTo(rectX, rectY + rectHeight, rectX, rectY + rectHeight - cornerRadius);
+            ctx.lineTo(rectX, rectY + cornerRadius);
+            ctx.quadraticCurveTo(rectX, rectY, rectX + cornerRadius, rectY);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = textColor;
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+            ctx.shadowBlur = 3;
+            ctx.fillText(text, x, y - marginBottom);
+        
+
+            ctx.shadowColor = 'transparent';
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.shadowBlur = 0;
+        };
+        
         const drawLine = (start, end, color) => {
             if (start && end) {
                 const startPoint = chartRef.current.chart.timeScale().timeToCoordinate(start.time);
                 const endPoint = chartRef.current.chart.timeScale().timeToCoordinate(end.time);
                 const startPrice = chartRef.current.candleSeries.priceToCoordinate(start.price);
                 const endPrice = chartRef.current.candleSeries.priceToCoordinate(end.price);
-
+        
                 if (startPoint !== null && endPoint !== null && startPrice !== null && endPrice !== null) {
+                    ctx.setLineDash([]);
                     ctx.beginPath();
                     ctx.moveTo(startPoint, startPrice);
                     ctx.lineTo(endPoint, endPrice);
@@ -58,9 +123,53 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
                     ctx.stroke();
                     drawAnchor({ x: startPoint, y: startPrice });
                     drawAnchor({ x: endPoint, y: endPrice });
+
+                    const midpoint = {
+                        x: (startPoint + endPoint) / 2,
+                        y: (startPrice + endPrice) / 2
+                    };
+                    drawAnchor(midpoint);
+        
+                    ctx.fillStyle = 'rgba(0, 0, 255, 0.1)'; 
+                    ctx.fillRect(startPoint, canvas.height - 25, endPoint - startPoint, 25); 
+        
+         
+                    ctx.fillStyle = 'rgba(0, 0, 255, 0.1)'; 
+                    ctx.fillRect(canvas.width - 50, Math.min(startPrice, endPrice), 50, Math.abs(endPrice - startPrice)); 
+        
+                  
+                    ctx.strokeStyle = 'rgba(0, 0, 255, 0.5)';
+                 ctx.lineWidth = 1;
+                    ctx.setLineDash([5, 5]); 
+        
+                    ctx.beginPath();
+                    ctx.moveTo(startPoint, 0);
+       ctx.lineTo(startPoint, canvas.height);
+                  ctx.stroke();
+                    drawTextWithBackground(`T: ${formatDate(start.time)}`, startPoint + 5, canvas.height - 5, 'blue', '14px', 'bold', 'rgba(255, 255, 255, 0.8)', 10); 
+        
+                    ctx.beginPath();
+                    ctx.moveTo(endPoint, 0);
+            ctx.lineTo(endPoint, canvas.height);
+                    ctx.stroke();
+                    drawTextWithBackground(`T: ${formatDate(end.time)}`, endPoint + 5, canvas.height - 5, 'blue', '14px', 'bold', 'rgba(255, 255, 255, 0.8)', 10); 
+        
+                   
+                    ctx.beginPath();
+                    ctx.moveTo(0, startPrice);
+             ctx.lineTo(canvas.width, startPrice);
+                    ctx.stroke();
+                    drawTextWithBackground(`P: ${start.price.toFixed(2)}`, canvas.width - 50, startPrice - 15, 'blue', '14px', 'bold', 'rgba(255, 255, 255, 0.8)');
+        
+                    ctx.beginPath();
+                    ctx.moveTo(0, endPrice);
+                    ctx.lineTo(canvas.width, endPrice);
+                    ctx.stroke();
+                    drawTextWithBackground(`P: ${end.price.toFixed(2)}`, canvas.width - 50, endPrice - 15, 'blue', '14px', 'bold', 'rgba(255, 255, 255, 0.8)');
                 }
             }
         };
+        
 
         const redrawLine = (color = 'blue') => {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -120,7 +229,7 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
                 const time = chartRef.current.chart.timeScale().coordinateToTime(position.x);
                 const price = chartRef.current.candleSeries.coordinateToPrice(position.y);
                 if (time && price) {
-                    clearLine(); 
+                    clearLine();
                     setLine({ start: { time, price }, end: { time, price } });
                     setDrawingStage(1);
                     setIsDrawing(true);
@@ -133,10 +242,10 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
                     setLine(newLine);
                     setDrawingStage(2);
                     setIsDrawing(false);
-                    redrawLine('blue'); 
+                    redrawLine('blue');
                     if (chartRef.current) {
-                        chartRef.current.trendlines = [newLine]; 
-                        updateChartSeries(newLine); 
+                        chartRef.current.trendlines = [newLine];
+                        updateChartSeries(newLine);
                     }
 
                     setSelectedTool(null);
@@ -151,10 +260,18 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
                     const startPrice = chartRef.current.candleSeries.priceToCoordinate(line.start.price);
                     const endPrice = chartRef.current.candleSeries.priceToCoordinate(line.end.price);
 
+                    const midpoint = {
+                        x: (startPoint + endPoint) / 2,
+                        y: (startPrice + endPrice) / 2
+                    };
+
                     if (isNearPoint({ x: startPoint, y: startPrice }, position)) {
                         setMovingPoint({ pointType: 'start' });
                     } else if (isNearPoint({ x: endPoint, y: endPrice }, position)) {
                         setMovingPoint({ pointType: 'end' });
+                    } else if (isNearPoint(midpoint, position)) {
+                        setMovingPoint({ pointType: 'middle', startPosition: position });
+                        setInitialClick(position);
                     } else if (isNearLine(line, position)) {
                         setMovingPoint({ pointType: 'line', startPosition: position });
                         setInitialClick(position);
@@ -175,7 +292,7 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
                     if (drawingStage === 1 && line) {
                         const newLine = { ...line, end: { time, price } };
                         setLine(newLine);
-                        redrawLine('lightblue'); 
+                        redrawLine('lightblue');
                         canvas.style.cursor = 'crosshair';
                     } else if (movingPoint !== null && line) {
                         let newLine = { ...line };
@@ -183,7 +300,7 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
                             newLine.start = { time, price };
                         } else if (movingPoint.pointType === 'end') {
                             newLine.end = { time, price };
-                        } else if (movingPoint.pointType === 'line') {
+                        } else if (movingPoint.pointType === 'line' || movingPoint.pointType === 'middle') {
                             const timeDelta = time - chart.timeScale().coordinateToTime(movingPoint.startPosition.x);
                             const priceDelta = price - candleSeries.coordinateToPrice(movingPoint.startPosition.y);
                             newLine.start = {
@@ -194,18 +311,25 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
                                 time: line.end.time + timeDelta,
                                 price: line.end.price + priceDelta
                             };
+                            setInitialClick(position); // Update the initial click position
                             setMovingPoint({ ...movingPoint, startPosition: position });
                         }
                         setLine(newLine);
-                        redrawLine('blue'); 
-                        updateChartSeries(newLine); 
+                        redrawLine('blue');
+                        updateChartSeries(newLine);
                         canvas.style.cursor = 'move';
                     } else if (drawingStage === 2 && line) {
                         const startPoint = chartRef.current.chart.timeScale().timeToCoordinate(line.start.time);
                         const endPoint = chartRef.current.chart.timeScale().timeToCoordinate(line.end.time);
                         const startPrice = chartRef.current.candleSeries.priceToCoordinate(line.start.price);
                         const endPrice = chartRef.current.candleSeries.priceToCoordinate(line.end.price);
-                        if (isNearPoint({ x: startPoint, y:startPrice }, position) || isNearPoint({ x: endPoint, y: endPrice }, position)) {
+
+                        const midpoint = {
+                            x: (startPoint + endPoint) / 2,
+                            y: (startPrice + endPrice) / 2
+                        };
+
+                        if (isNearPoint({ x: startPoint, y: startPrice }, position) || isNearPoint({ x: endPoint, y: endPrice }, position) || isNearPoint(midpoint, position)) {
                             canvas.style.cursor = 'pointer';
                         } else if (isNearLine(line, position)) {
                             canvas.style.cursor = 'move';
@@ -219,9 +343,13 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
                             const endPoint = chartRef.current.chart.timeScale().timeToCoordinate(line.end.time);
                             const startPrice = chartRef.current.candleSeries.priceToCoordinate(line.start.price);
                             const endPrice = chartRef.current.candleSeries.priceToCoordinate(line.end.price);
-                            if (isNearPoint({ x: startPoint, y: startPrice }, position)) {
-                                cursor = 'pointer';
-                            } else if (isNearPoint({ x: endPoint, y: endPrice }, position)) {
+
+                            const midpoint = {
+                                x: (startPoint + endPoint) / 2,
+                                y: (startPrice + endPrice) / 2
+                            };
+
+                            if (isNearPoint({ x: startPoint, y: startPrice }, position) || isNearPoint({ x: endPoint, y: endPrice }, position) || isNearPoint(midpoint, position)) {
                                 cursor = 'pointer';
                             } else if (isNearLine(line, position)) {
                                 cursor = 'move';
@@ -275,4 +403,3 @@ const TrendLine = ({ canvasRef, chartRef, endDrawingCallback }) => {
 };
 
 export default TrendLine;
-

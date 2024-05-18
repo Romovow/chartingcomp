@@ -9,6 +9,7 @@ import { drawFunctions } from './utils/drawingInstance';
 const DrawingTools = ({ canvasRef, setSelectedTool, endDrawingCallback, chartRef, priceScaleData }) => {
   const [drawingMode, setDrawingMode] = useState('none');
   const [toolbarVisible, setToolbarVisible] = useState(true);
+  const [closeButtonVisible, setCloseButtonVisible] = useState(false); 
   const toolbarRef = useRef();
   const handleRef = useRef();
   const [selectedTool, setSelectedToolState] = useState(null);
@@ -32,9 +33,19 @@ const DrawingTools = ({ canvasRef, setSelectedTool, endDrawingCallback, chartRef
 
   const handleToolSelection = (tool) => {
     setSelectedToolState(tool);
+    setCloseButtonVisible(true); 
     if (typeof setSelectedTool === 'function') {
       setSelectedTool(tool); 
     }
+  };
+
+  const handleCloseButtonClick = () => {
+    setSelectedToolState(null);
+    setSelectedTool(null);
+    setDrawingMode('none');
+    setCloseButtonVisible(false); 
+    endDrawingCallback();
+    toggleToolbar(false);
   };
 
   useEffect(() => {
@@ -43,6 +54,7 @@ const DrawingTools = ({ canvasRef, setSelectedTool, endDrawingCallback, chartRef
         endDrawingCallback();
         setSelectedToolState(null);
         setSelectedTool(null);
+        setCloseButtonVisible(false); 
         toggleToolbar(false);
       }));
     } else {
@@ -82,6 +94,11 @@ const DrawingTools = ({ canvasRef, setSelectedTool, endDrawingCallback, chartRef
         {selectedTool && <ToolIcon toolName={selectedTool} />}
       </div>
       {drawingMode}
+      {closeButtonVisible && (
+        <button className="close-drawing-button" onClick={handleCloseButtonClick}>
+          Close Drawing
+        </button>
+      )}
     </div>
   );
 };
